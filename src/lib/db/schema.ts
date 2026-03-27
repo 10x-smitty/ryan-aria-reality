@@ -1,15 +1,15 @@
-import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
+import { pgTable, text, integer, doublePrecision, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const id = () => text('id').primaryKey().$defaultFn(() => crypto.randomUUID());
-const now = () => text('created_at').notNull().default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`);
-const nowUpdated = () => text('updated_at').notNull().default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`);
+const now = () => text('created_at').notNull().default(sql`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+const nowUpdated = () => text('updated_at').notNull().default(sql`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
-export const users = sqliteTable('users', {
+export const users = pgTable('users', {
   id: id(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
@@ -22,7 +22,7 @@ export const users = sqliteTable('users', {
   updatedAt: nowUpdated(),
 });
 
-export const sessions = sqliteTable('sessions', {
+export const sessions = pgTable('sessions', {
   id: id(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   expiresAt: text('expires_at').notNull(),
@@ -31,7 +31,7 @@ export const sessions = sqliteTable('sessions', {
 
 // ── Properties ────────────────────────────────────────────────────────────────
 
-export const properties = sqliteTable('properties', {
+export const properties = pgTable('properties', {
   id: id(),
   address: text('address').notNull(),
   city: text('city').notNull(),
@@ -44,34 +44,34 @@ export const properties = sqliteTable('properties', {
   status: text('status', {
     enum: ['Active', 'Under Contract', 'Closed', 'Expired', 'Withdrawn', 'Coming Soon'],
   }).notNull().default('Active'),
-  listPrice: real('list_price').notNull(),
-  soldPrice: real('sold_price'),
+  listPrice: doublePrecision('list_price').notNull(),
+  soldPrice: doublePrecision('sold_price'),
   bedrooms: integer('bedrooms'),
-  bathrooms: real('bathrooms'),
+  bathrooms: doublePrecision('bathrooms'),
   sqft: integer('sqft'),
-  lotSize: real('lot_size'),
+  lotSize: doublePrecision('lot_size'),
   yearBuilt: integer('year_built'),
   description: text('description'),
-  isFeatured: integer('is_featured', { mode: 'boolean' }).notNull().default(false),
+  isFeatured: boolean('is_featured').notNull().default(false),
   assignedAgentId: text('assigned_agent_id').references(() => users.id, { onDelete: 'set null' }),
   mlsNumber: text('mls_number'),
   createdAt: now(),
   updatedAt: nowUpdated(),
 });
 
-export const propertyImages = sqliteTable('property_images', {
+export const propertyImages = pgTable('property_images', {
   id: id(),
   propertyId: text('property_id').notNull().references(() => properties.id, { onDelete: 'cascade' }),
   storagePath: text('storage_path').notNull(),
   publicUrl: text('public_url').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
-  isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
+  isPrimary: boolean('is_primary').notNull().default(false),
   createdAt: now(),
 }, (t) => [index('idx_property_images_property_id').on(t.propertyId)]);
 
 // ── Contacts & CRM ────────────────────────────────────────────────────────────
 
-export const contacts = sqliteTable('contacts', {
+export const contacts = pgTable('contacts', {
   id: id(),
   fullName: text('full_name').notNull(),
   email: text('email'),
@@ -82,8 +82,8 @@ export const contacts = sqliteTable('contacts', {
   source: text('source', {
     enum: ['Website', 'Referral', 'Zillow', 'Realtor.com', 'Social', 'Cold Call', 'Other'],
   }),
-  budgetMin: real('budget_min'),
-  budgetMax: real('budget_max'),
+  budgetMin: doublePrecision('budget_min'),
+  budgetMax: doublePrecision('budget_max'),
   leadScore: integer('lead_score'),
   notes: text('notes'),
   assignedAgentId: text('assigned_agent_id').references(() => users.id, { onDelete: 'set null' }),
@@ -91,7 +91,7 @@ export const contacts = sqliteTable('contacts', {
   updatedAt: nowUpdated(),
 });
 
-export const contactActivities = sqliteTable('contact_activities', {
+export const contactActivities = pgTable('contact_activities', {
   id: id(),
   contactId: text('contact_id').notNull().references(() => contacts.id, { onDelete: 'cascade' }),
   type: text('type', { enum: ['call', 'email', 'showing', 'note', 'status_change'] }).notNull(),
@@ -100,7 +100,7 @@ export const contactActivities = sqliteTable('contact_activities', {
   createdAt: now(),
 }, (t) => [index('idx_contact_activities_contact_id').on(t.contactId)]);
 
-export const deals = sqliteTable('deals', {
+export const deals = pgTable('deals', {
   id: id(),
   title: text('title').notNull(),
   stage: text('stage', {
@@ -108,8 +108,8 @@ export const deals = sqliteTable('deals', {
   }).notNull().default('New Lead'),
   contactId: text('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
   propertyId: text('property_id').references(() => properties.id, { onDelete: 'set null' }),
-  dealValue: real('deal_value'),
-  commissionRate: real('commission_rate'),
+  dealValue: doublePrecision('deal_value'),
+  commissionRate: doublePrecision('commission_rate'),
   closeDate: text('close_date'),
   notes: text('notes'),
   assignedAgentId: text('assigned_agent_id').references(() => users.id, { onDelete: 'set null' }),
@@ -119,7 +119,7 @@ export const deals = sqliteTable('deals', {
   updatedAt: nowUpdated(),
 });
 
-export const dealActivities = sqliteTable('deal_activities', {
+export const dealActivities = pgTable('deal_activities', {
   id: id(),
   dealId: text('deal_id').notNull().references(() => deals.id, { onDelete: 'cascade' }),
   type: text('type', { enum: ['note', 'stage_change', 'document', 'message'] }).notNull(),
@@ -130,35 +130,35 @@ export const dealActivities = sqliteTable('deal_activities', {
 
 // ── CMS ───────────────────────────────────────────────────────────────────────
 
-export const siteContent = sqliteTable('site_content', {
+export const siteContent = pgTable('site_content', {
   id: id(),
   slug: text('slug', { enum: ['hero', 'about', 'stats', 'footer', 'cta', 'header'] }).notNull().unique(),
-  content: text('content', { mode: 'json' }).notNull(),
+  content: jsonb('content').notNull(),
   updatedBy: text('updated_by').references(() => users.id, { onDelete: 'set null' }),
   updatedAt: nowUpdated(),
 });
 
-export const featuredListings = sqliteTable('featured_listings', {
+export const featuredListings = pgTable('featured_listings', {
   id: id(),
   propertyId: text('property_id').references(() => properties.id, { onDelete: 'set null' }),
-  manualData: text('manual_data', { mode: 'json' }),
+  manualData: jsonb('manual_data'),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: now(),
 });
 
-export const testimonials = sqliteTable('testimonials', {
+export const testimonials = pgTable('testimonials', {
   id: id(),
   name: text('name').notNull(),
   quote: text('quote').notNull(),
   initials: text('initials').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  isActive: boolean('is_active').notNull().default(true),
   createdAt: now(),
 });
 
 // ── Customer Portal ───────────────────────────────────────────────────────────
 
-export const customerFavorites = sqliteTable('customer_favorites', {
+export const customerFavorites = pgTable('customer_favorites', {
   id: id(),
   customerId: text('customer_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   propertyId: text('property_id').references(() => properties.id, { onDelete: 'cascade' }),
@@ -166,7 +166,7 @@ export const customerFavorites = sqliteTable('customer_favorites', {
   createdAt: now(),
 });
 
-export const documents = sqliteTable('documents', {
+export const documents = pgTable('documents', {
   id: id(),
   name: text('name').notNull(),
   storagePath: text('storage_path').notNull(),
@@ -174,11 +174,11 @@ export const documents = sqliteTable('documents', {
   dealId: text('deal_id').references(() => deals.id, { onDelete: 'set null' }),
   contactId: text('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
   uploadedBy: text('uploaded_by').notNull().references(() => users.id),
-  isVisibleToCustomer: integer('is_visible_to_customer', { mode: 'boolean' }).notNull().default(false),
+  isVisibleToCustomer: boolean('is_visible_to_customer').notNull().default(false),
   createdAt: now(),
 });
 
-export const messages = sqliteTable('messages', {
+export const messages = pgTable('messages', {
   id: id(),
   senderId: text('sender_id').notNull().references(() => users.id),
   recipientId: text('recipient_id').notNull().references(() => users.id),
@@ -191,12 +191,12 @@ export const messages = sqliteTable('messages', {
   index('idx_messages_recipient').on(t.recipientId),
 ]);
 
-export const transactionTimeline = sqliteTable('transaction_timeline', {
+export const transactionTimeline = pgTable('transaction_timeline', {
   id: id(),
   dealId: text('deal_id').notNull().references(() => deals.id, { onDelete: 'cascade' }),
   milestone: text('milestone').notNull(),
   completedAt: text('completed_at'),
-  isVisibleToCustomer: integer('is_visible_to_customer', { mode: 'boolean' }).notNull().default(true),
+  isVisibleToCustomer: boolean('is_visible_to_customer').notNull().default(true),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: now(),
 }, (t) => [index('idx_transaction_timeline_deal_id').on(t.dealId)]);

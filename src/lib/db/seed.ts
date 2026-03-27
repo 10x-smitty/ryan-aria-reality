@@ -5,16 +5,10 @@
  *
  * Safe to re-run — skips inserts if data already exists.
  */
-import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
-import { getDb } from './client.ts';
+import { db } from './client.ts';
 import { users, properties, contacts, deals, siteContent, testimonials, featuredListings, customerFavorites, transactionTimeline, messages } from './schema.ts';
 import { hashPassword } from '../auth/password.ts';
-
-mkdirSync(join(process.cwd(), 'data'), { recursive: true });
-
-const db = getDb();
 
 // ── Admin user ────────────────────────────────────────────────────────────────
 
