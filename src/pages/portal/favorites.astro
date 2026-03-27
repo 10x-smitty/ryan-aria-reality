@@ -1,0 +1,91 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { getFavoritesByUser } from '../../services/favorites';
+
+const user = Astro.locals.user!;
+const favorites = await getFavoritesByUser(user.id);
+
+function formatPrice(n: number | null | undefined) {
+  if (!n) return '—';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+}
+---
+
+<PortalLayout title="Saved Homes" active="favorites">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-4xl text-[var(--ink)]">Saved Homes</h1>
+        <p class="mt-1 text-sm text-[var(--muted)]">{favorites.length} saved {favorites.length === 1 ? 'home' : 'homes'}</p>
+      </div>
+    </div>
+
+    {favorites.length === 0 ? (
+      <div class="surface-card rounded-2xl p-12 text-center">
+        <p class="text-4xl">♡</p>
+        <p class="mt-3 font-medium text-[var(--ink)]">No saved homes yet</p>
+        <p class="mt-1 text-sm text-[var(--muted)]">Browse properties and save your favorites to see them here.</p>
+        <a href="/search/" class="mt-6 inline-block rounded-xl bg-[var(--ink)] px-6 py-3 text-sm font-semibold text-[var(--page)] transition hover:opacity-90">
+          Browse Properties
+        </a>
+      </div>
+    ) : (
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {favorites.map((fav) => (
+          <div class="surface-card group rounded-2xl overflow-hidden">
+            <div class="flex h-40 items-center justify-center bg-[var(--page-alt)]">
+              <span class="text-5xl opacity-20">🏠</span>
+            </div>
+            <div class="p-5">
+              <p class="font-semibold text-[var(--ink)]">{fav.address ?? 'Address unavailable'}</p>
+              <p class="mt-0.5 text-sm text-[var(--muted)]">
+                {[fav.city, fav.state].filter(Boolean).join(', ')} {fav.zip}
+              </p>
+              <p class="mt-3 font-display text-xl text-[var(--ink)]">{formatPrice(fav.listPrice)}</p>
+              {(fav.bedrooms || fav.bathrooms || fav.sqft) && (
+                <p class="mt-1 text-xs text-[var(--muted)]">
+                  {[
+                    fav.bedrooms ? `${fav.bedrooms} bd` : null,
+                    fav.bathrooms ? `${fav.bathrooms} ba` : null,
+                    fav.sqft ? `${fav.sqft.toLocaleString()} sqft` : null,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              <div class="mt-4 flex items-center justify-between">
+                <span class={[
+                  'rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                  fav.status === 'Active' ? 'bg-green-100 text-green-700' :
+                  fav.status === 'Under Contract' ? 'bg-amber-100 text-amber-700' :
+                  'bg-[var(--page-alt)] text-[var(--muted)]',
+                ].join(' ')}>
+                  {fav.status ?? 'Unknown'}
+                </span>
+                <button
+                  class="remove-favorite text-xs text-red-500 hover:text-red-700"
+                  data-property-id={fav.propertyId}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</PortalLayout>
+
+<script>
+  document.querySelectorAll('.remove-favorite').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const propertyId = (btn as HTMLElement).dataset.propertyId;
+      if (!propertyId) return;
+      await fetch('/api/favorites', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId }),
+      });
+      (btn.closest('.surface-card') as HTMLElement)?.remove();
+    });
+  });
+</script>

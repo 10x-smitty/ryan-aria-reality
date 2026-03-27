@@ -1,0 +1,280 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ActionButton from '../components/ui/ActionButton.astro';
+import InitialAvatar from '../components/ui/InitialAvatar.astro';
+import Icon from '../components/ui/Icon.vue';
+import LandingSearchBar from '../components/vue/LandingSearchBar.vue';
+import { getAllSiteContent, getActiveTestimonials, getFeaturedListings } from '../services/site-content';
+import EqualHousingLogo from '../components/ui/EqualHousingLogo.astro';
+import { AGENCY_DISCLOSURE_SHORT } from '../lib/utils/illinois-compliance';
+
+const [content, testimonials, featured] = await Promise.all([
+  getAllSiteContent(),
+  getActiveTestimonials(),
+  getFeaturedListings(),
+]);
+
+const hero   = { showSearch: true, ...(content.hero   ?? { title: 'Find Your Dream Home', eyebrow: '', subtitle: '', backgroundImage: '', trust: [] }) };
+const about  = content.about  ?? { image: '', label: '', title: 'Ryan Aria', role: '', paragraphs: [], certifications: [] };
+const stats  = content.stats  ?? { items: [] };
+const cta    = content.cta    ?? { title: '', subtitle: '', phone: '', email: '', trust: [] };
+const footer = content.footer ?? { description: '', phone: '', email: '', address: '', socials: ['instagram', 'linkedin', 'facebook'], legal: [] };
+const headerCms = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria Properties', navLinks: [] };
+
+const defaultNavLinks: [string, string][] = [
+  ['Featured', '#featured'],
+  ['About', '#about'],
+  ['Testimonials', '#testimonials'],
+  ['Contact', '#contact'],
+];
+const navLinks: [string, string][] = Array.isArray(headerCms.navLinks) && headerCms.navLinks.length > 0
+  ? headerCms.navLinks
+  : defaultNavLinks;
+---
+
+<BaseLayout title="Ryan Aria Properties — Chicagoland Luxury Real Estate">
+  <header class="bg-[var(--ink)] text-[var(--page)]">
+    <div class="crm-frame flex flex-col gap-4 py-5 md:flex-row md:items-center md:justify-between">
+      <a href="/" class="flex items-center gap-3">
+        {headerCms.logoUrl ? (
+          <img src={headerCms.logoUrl} alt={headerCms.brandText || 'Ryan Aria Properties'} class="h-9 w-auto object-contain" />
+        ) : (
+          <span class="font-display text-2xl tracking-[0.14em] text-[var(--page)]">
+            {headerCms.brandText || 'Ryan Aria Properties'}
+          </span>
+        )}
+      </a>
+      <nav class="overflow-x-auto">
+        <ul class="flex min-w-max items-center gap-8 text-sm text-[var(--muted-light)]">
+          {navLinks.map(([label, href]) => (
+            <li><a href={href} class="hover:text-[var(--page)]">{label}</a></li>
+          ))}
+        </ul>
+      </nav>
+      <ActionButton href="/auth/portal-login" label="Client Login" variant="solid" />
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="relative isolate overflow-hidden bg-[var(--ink)]">
+      <div class="absolute inset-0">
+        {hero.backgroundImage && (
+          <img src={hero.backgroundImage} alt="" class="size-full object-cover" />
+        )}
+        <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(19,19,19,0.78),rgba(58,58,58,0.34),rgba(58,58,58,0.6))]"></div>
+      </div>
+      <div class="relative crm-frame flex min-h-[700px] flex-col justify-center gap-12 py-24">
+        <div class="max-w-4xl space-y-5">
+          {hero.eyebrow && <p class="text-xs font-medium uppercase tracking-[0.4em] text-[var(--muted-light)]">{hero.eyebrow}</p>}
+          <h1 class="font-display text-5xl leading-[0.95] text-[var(--page)] md:text-7xl xl:text-[5.75rem]">
+            {hero.title}
+          </h1>
+          {hero.subtitle && (
+            <p class="max-w-2xl text-base leading-7 text-[var(--muted-light)] md:text-lg">{hero.subtitle}</p>
+          )}
+        </div>
+        <div style={hero.showSearch === false ? 'visibility: hidden' : ''}>
+          <LandingSearchBar client:load />
+        </div>
+        {hero.trust?.length > 0 && (
+          <div class="flex flex-wrap gap-x-12 gap-y-3 text-sm text-[var(--muted-light)]">
+            {hero.trust.map((item) => <span>{item}</span>)}
+          </div>
+        )}
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="crm-frame py-20 md:py-24">
+      <div class="grid gap-10 xl:grid-cols-[480px_minmax(0,1fr)] xl:items-center">
+        <div class="overflow-hidden">
+          <img src={about.image} alt={about.title} class="h-full w-full object-cover" />
+        </div>
+        <div class="space-y-6">
+          {about.label && <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--muted)]">{about.label}</p>}
+          <div class="space-y-3">
+            <h2 class="font-display text-5xl leading-none md:text-[3.25rem]">{about.title}</h2>
+            {about.role && <p class="text-base text-[var(--muted)] md:text-lg">{about.role}</p>}
+          </div>
+          {about.paragraphs?.length > 0 && (
+            <div class="space-y-5 text-base leading-8 text-[var(--ink-soft)]">
+              {about.paragraphs.map((p) => <p>{p}</p>)}
+            </div>
+          )}
+          {about.certifications?.length > 0 && (
+            <div class="flex flex-wrap gap-5 pt-2 text-sm text-[var(--ink)]">
+              {about.certifications.map((c) => (
+                <div class="inline-flex items-center gap-2">
+                  <Icon name="award" size={16} class="text-[var(--ink)]" />
+                  <span>{c}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured listings -->
+    {featured.length > 0 && (
+      <section id="featured" class="bg-[var(--page)]">
+        <div class="crm-frame space-y-12 py-14 md:py-16">
+          <div class="space-y-2">
+            <h2 class="font-display text-4xl md:text-[3.25rem]">Featured Listings</h2>
+            <p class="text-base text-[var(--muted)] md:text-lg">Handpicked properties for discerning buyers</p>
+          </div>
+          <div class="grid gap-6 xl:grid-cols-3">
+            {featured.map((listing) => (
+              <a href={listing.href} class="surface-card group overflow-hidden">
+                {listing.image ? (
+                  <img src={listing.image} alt={listing.title} class="h-60 w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+                ) : (
+                  <div class="flex h-60 items-center justify-center bg-[var(--page-alt)] text-sm text-[var(--muted)]">No image</div>
+                )}
+                <div class="space-y-3 p-6">
+                  <h3 class="font-display text-2xl">{listing.title}</h3>
+                  <p class="text-sm text-[var(--muted)]">{listing.address}</p>
+                  <p class="font-display text-3xl">{listing.price}</p>
+                  {listing.specs.length > 0 && (
+                    <div class="flex flex-wrap gap-4 text-sm text-[var(--muted)]">
+                      {listing.specs.map((spec) => <span>{spec}</span>)}
+                    </div>
+                  )}
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Testimonials -->
+    {testimonials.length > 0 && (
+      <section id="testimonials" class="bg-[var(--page-alt)]">
+        <div class="crm-frame space-y-12 py-20">
+          <div class="space-y-2 text-center">
+            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--muted)]">TESTIMONIALS</p>
+            <h2 class="font-display text-4xl md:text-[3.25rem]">What Our Clients Say</h2>
+          </div>
+          <div class="grid gap-6 xl:grid-cols-3">
+            {testimonials.map((t) => (
+              <article class="surface-card space-y-6 p-8">
+                <p class="text-sm leading-7 text-[var(--ink-soft)]">{t.quote}</p>
+                <div class="flex items-center gap-3">
+                  <InitialAvatar initials={t.initials} />
+                  <p class="text-sm font-semibold">{t.name}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Stats -->
+    {stats.items?.length > 0 && (
+      <section class="bg-[var(--ink)] text-[var(--page)]">
+        <div class="crm-frame grid gap-10 py-16 md:grid-cols-2 xl:grid-cols-4">
+          {stats.items.map(([value, label]: [string, string]) => (
+            <div class="space-y-2 text-center">
+              <p class="font-display text-5xl">{value}</p>
+              <p class="text-sm text-[var(--muted-light)]">{label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- CTA -->
+    {cta.title && (
+      <section class="crm-frame py-20 text-center md:py-24">
+        <div class="mx-auto max-w-3xl space-y-6">
+          <h2 class="font-display text-4xl leading-tight md:text-[3.25rem]">{cta.title}</h2>
+          {cta.subtitle && <p class="text-base leading-7 text-[var(--muted)] md:text-lg">{cta.subtitle}</p>}
+          <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+            {cta.phone && <ActionButton href={`tel:${cta.phone}`} label="Schedule a Call" variant="solid" icon="phone" />}
+            {cta.email && <ActionButton href={`mailto:${cta.email}`} label="Send a Message" variant="outline" icon="mail" />}
+          </div>
+          {cta.trust?.length > 0 && (
+            <div class="flex flex-wrap items-center justify-center gap-6 pt-4 text-sm text-[var(--muted)]">
+              {cta.trust.map((item) => <span>{item}</span>)}
+            </div>
+          )}
+        </div>
+      </section>
+    )}
+  </main>
+
+  <!-- Footer -->
+  <footer id="contact" class="bg-[var(--ink)] text-[var(--page)]">
+    <div class="crm-frame space-y-12 py-14">
+      <div class="grid gap-10 xl:grid-cols-[320px_minmax(0,1fr)] xl:justify-between">
+        <div class="space-y-4">
+          <p class="font-display text-2xl tracking-[0.16em]">Ryan Aria Properties</p>
+          {footer.description && <p class="max-w-sm text-sm leading-7 text-[var(--muted-light)]">{footer.description}</p>}
+          {footer.address && <p class="text-sm text-[var(--muted-light)]">{footer.address}</p>}
+          <div class="flex items-center gap-4 text-[var(--muted-light)]">
+            {footer.socials?.map((social) => (
+              <a href="#" class="hover:text-[var(--page)]" aria-label={social}>
+                <Icon name={social} size={18} />
+              </a>
+            ))}
+          </div>
+        </div>
+        <div class="grid gap-8 sm:grid-cols-3">
+          <div class="space-y-4">
+            <p class="text-sm font-semibold">Explore</p>
+            <ul class="space-y-3 text-sm text-[var(--muted-light)]">
+              <li><a href="#featured" class="hover:text-[var(--page)] transition">Featured Homes</a></li>
+              <li><a href="#about" class="hover:text-[var(--page)] transition">About Ryan</a></li>
+              <li><a href="#testimonials" class="hover:text-[var(--page)] transition">Testimonials</a></li>
+            </ul>
+          </div>
+          <div class="space-y-4">
+            <p class="text-sm font-semibold">Client</p>
+            <ul class="space-y-3 text-sm text-[var(--muted-light)]">
+              <li><a href="/auth/portal-login" class="hover:text-[var(--page)] transition">Client Login</a></li>
+            </ul>
+          </div>
+          <div class="space-y-4">
+            <p class="text-sm font-semibold">Contact</p>
+            <ul class="space-y-3 text-sm text-[var(--muted-light)]">
+              {footer.phone && (
+                <li>
+                  <a href={`tel:${footer.phone.replace(/\D/g, '')}`} class="hover:text-[var(--page)] transition">
+                    {footer.phone}
+                  </a>
+                </li>
+              )}
+              {footer.email && (
+                <li>
+                  <a href={`mailto:${footer.email}`} class="hover:text-[var(--page)] transition">
+                    {footer.email}
+                  </a>
+                </li>
+              )}
+              <li><a href="#contact" class="hover:text-[var(--page)] transition">Send a Message</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <!-- Compliance -->
+      <div class="flex flex-wrap items-start gap-4 text-xs text-[var(--muted-light)]">
+        <EqualHousingLogo size={28} class="mt-0.5 shrink-0 opacity-50" />
+        <div class="space-y-1">
+          <p>Equal Housing Opportunity</p>
+          <p class="opacity-70">{AGENCY_DISCLOSURE_SHORT}</p>
+        </div>
+      </div>
+
+      <div class="h-px bg-[#4d4d4d]"></div>
+      <div class="flex flex-col gap-4 text-xs text-[var(--muted-light)] md:flex-row md:items-center md:justify-between">
+        <p>© {new Date().getFullYear()} Ryan Aria Properties. All rights reserved.</p>
+        <div class="flex flex-wrap gap-6">
+          {footer.legal?.map((item) => <span>{item}</span>)}
+        </div>
+      </div>
+    </div>
+  </footer>
+</BaseLayout>

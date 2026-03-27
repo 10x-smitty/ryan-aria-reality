@@ -1,0 +1,28 @@
+---
+import CrmLayout from '../../../../layouts/CrmLayout.astro';
+import Icon from '../../../../components/ui/Icon.vue';
+import ContactForm from '../../../../components/crm/ContactForm.vue';
+import { getContactById } from '../../../../services/contacts';
+
+const { id } = Astro.params;
+const result = await getContactById(id!);
+if (!result) return Astro.redirect('/crm/contacts/');
+
+const { contacts: c } = result;
+---
+
+<CrmLayout title={`Edit ${c.fullName}`} active="contacts">
+  <section class="crm-frame space-y-6">
+    <div class="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+      <a href="/crm/contacts/" class="hover:text-[var(--ink)]">Contacts</a>
+      <Icon name="chevron-right" size={14} />
+      <a href={`/crm/contacts/${c.id}/`} class="hover:text-[var(--ink)]">{c.fullName}</a>
+      <Icon name="chevron-right" size={14} />
+      <span class="font-medium text-[var(--ink)]">Edit</span>
+    </div>
+    <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">Edit Contact</h1>
+  </section>
+  <section class="crm-frame">
+    <ContactForm client:load contact={c} />
+  </section>
+</CrmLayout>

@@ -1,0 +1,18 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import PortalHeader from '../components/portal/PortalHeader.astro';
+
+interface Props {
+  title: string;
+  active: 'dashboard' | 'favorites' | 'documents' | 'messages' | 'transaction';
+}
+
+const { title, active } = Astro.props;
+---
+
+<BaseLayout title={`${title} | Client Portal`}>
+  <PortalHeader active={active} user={Astro.locals.user} />
+  <main class="mx-auto max-w-6xl space-y-10 px-6 pb-16 pt-10">
+    <slot />
+  </main>
+</BaseLayout>

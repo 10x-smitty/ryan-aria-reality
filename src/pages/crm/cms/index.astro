@@ -1,0 +1,153 @@
+---
+import CrmLayout from '../../../layouts/CrmLayout.astro';
+import ContentEditor from '../../../components/cms/ContentEditor.vue';
+import TestimonialEditor from '../../../components/cms/TestimonialEditor.vue';
+import FeaturedListingPicker from '../../../components/cms/FeaturedListingPicker.vue';
+import { getAllSiteContent, getAllTestimonials, getFeaturedListings } from '../../../services/site-content';
+import { getAllProperties } from '../../../services/properties';
+
+const [content, allTestimonials, featuredRows, allProperties] = await Promise.all([
+  getAllSiteContent(),
+  getAllTestimonials(),
+  // We need raw featured_listings rows for the picker, not the resolved FeaturedListingData
+  (async () => {
+    const { getDb } = await import('../../../lib/db/client');
+    const { featuredListings } = await import('../../../lib/db/schema');
+    const { asc } = await import('drizzle-orm');
+    return getDb().select().from(featuredListings).orderBy(asc(featuredListings.sortOrder));
+  })(),
+  getAllProperties(),
+]);
+
+const propertyOptions = allProperties.map((p) => ({
+  id: p.id,
+  label: `${p.address}, ${p.city} — ${p.status}`,
+}));
+
+const featuredItems = featuredRows.map((r) => ({
+  propertyId: r.propertyId ?? '',
+  image: (r.manualData as any)?.image ?? '',
+  sortOrder: r.sortOrder,
+}));
+
+const hero = { showSearch: true, ...(content.hero ?? {}) };
+const about = content.about ?? {};
+const stats = content.stats ?? { items: [] };
+const cta = content.cta ?? {};
+const footer = content.footer ?? {};
+const header = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria Properties', navLinks: [] };
+---
+
+<CrmLayout title="Site" active="site">
+  <section class="crm-frame space-y-3">
+    <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">Site</h1>
+    <p class="text-sm text-[var(--muted)]">Edit public site content. Changes go live instantly.</p>
+    <a href="/" target="_blank" class="inline-flex items-center gap-2 text-sm text-[var(--accent-deep)] hover:underline">
+      ↗ Preview public site
+    </a>
+  </section>
+
+  <section class="crm-frame space-y-8">
+    <!-- Header -->
+    <ContentEditor
+      client:load
+      slug="header"
+      title="Site Header"
+      initialContent={{
+        logoUrl: header.logoUrl ?? '',
+        brandText: header.brandText ?? 'Ryan Aria Properties',
+        navLinksRaw: (header.navLinks ?? []).map(([l, h]: [string, string]) => `${l} | ${h}`).join('\n'),
+      }}
+      fields={[
+        { key: 'logoUrl', label: 'Logo image URL (leave blank to show brand text)', type: 'url', hint: 'Paste a URL to your logo image (PNG, SVG)' },
+        { key: 'brandText', label: 'Brand text (shown when no logo)', type: 'text' },
+        { key: 'navLinksRaw', label: 'Navigation links (format: Label | /href, one per line)', type: 'list', hint: 'Featured Homes | #featured' },
+      ]}
+    />
+
+    <!-- Hero -->
+    <ContentEditor
+      client:load
+      slug="hero"
+      title="Hero Section"
+      initialContent={hero}
+      fields={[
+        { key: 'eyebrow', label: 'Eyebrow text', type: 'text' },
+        { key: 'title', label: 'Headline', type: 'text' },
+        { key: 'subtitle', label: 'Subtitle', type: 'textarea' },
+        { key: 'backgroundImage', label: 'Background image URL', type: 'url' },
+        { key: 'trust', label: 'Trust badges (one per line)', type: 'list' },
+        { key: 'showSearch', label: 'Show search bar', type: 'toggle' },
+      ]}
+    />
+
+    <!-- About -->
+    <ContentEditor
+      client:load
+      slug="about"
+      title="About Section"
+      initialContent={about}
+      fields={[
+        { key: 'label', label: 'Eyebrow label', type: 'text' },
+        { key: 'title', label: 'Agent name', type: 'text' },
+        { key: 'role', label: 'Role / tagline', type: 'text' },
+        { key: 'image', label: 'Agent photo URL', type: 'url' },
+        { key: 'paragraphs', label: 'Bio paragraphs (one per line)', type: 'list' },
+        { key: 'certifications', label: 'Certifications (one per line)', type: 'list' },
+      ]}
+    />
+
+    <!-- Stats -->
+    <ContentEditor
+      client:load
+      slug="stats"
+      title="Stats Bar"
+      initialContent={{ itemsRaw: (stats.items ?? []).map(([v, l]: [string, string]) => `${v} | ${l}`).join('\n') }}
+      fields={[
+        { key: 'itemsRaw', label: 'Stats (format: value | label, one per line)', type: 'list', hint: '2,400+ | Properties Sold' },
+      ]}
+    />
+
+    <!-- CTA -->
+    <ContentEditor
+      client:load
+      slug="cta"
+      title="Call to Action"
+      initialContent={cta}
+      fields={[
+        { key: 'title', label: 'Headline', type: 'text' },
+        { key: 'subtitle', label: 'Subtext', type: 'textarea' },
+        { key: 'phone', label: 'Phone number', type: 'text' },
+        { key: 'email', label: 'Email address', type: 'text' },
+        { key: 'trust', label: 'Trust bullets (one per line)', type: 'list' },
+      ]}
+    />
+
+    <!-- Footer -->
+    <ContentEditor
+      client:load
+      slug="footer"
+      title="Footer"
+      initialContent={footer}
+      fields={[
+        { key: 'description', label: 'Brand description', type: 'textarea' },
+        { key: 'phone', label: 'Phone', type: 'text' },
+        { key: 'email', label: 'Email', type: 'text' },
+        { key: 'address', label: 'Address / service area', type: 'text' },
+      ]}
+    />
+
+    <!-- Featured listings -->
+    <FeaturedListingPicker
+      client:load
+      initialItems={featuredItems}
+      propertyOptions={propertyOptions}
+    />
+
+    <!-- Testimonials -->
+    <TestimonialEditor
+      client:load
+      initialTestimonials={allTestimonials}
+    />
+  </section>
+</CrmLayout>

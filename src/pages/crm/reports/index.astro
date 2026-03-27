@@ -1,0 +1,86 @@
+---
+import CrmLayout from '../../../layouts/CrmLayout.astro';
+import MetricCard from '../../../components/crm/MetricCard.astro';
+import { getDealMetrics } from '../../../services/deals';
+import { getPropertyMetrics } from '../../../services/properties';
+import { getContactMetrics } from '../../../services/contacts';
+import { DEAL_STAGES } from '../../../services/deals';
+
+const [dealM, propM, contactM] = await Promise.all([
+  getDealMetrics(),
+  getPropertyMetrics(),
+  getContactMetrics(),
+]);
+
+const fmt = (n: number) =>
+  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n}`;
+
+const funnelStages = DEAL_STAGES.filter((s) => s !== 'Lost');
+const maxCount = Math.max(...funnelStages.map((s) => dealM.byStage[s] ?? 0), 1);
+---
+
+<CrmLayout title="Reports" active="reports">
+  <section class="crm-frame space-y-8">
+    <div class="space-y-3">
+      <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">Reports</h1>
+      <p class="text-sm text-[var(--muted)] md:text-base">Pipeline performance and business metrics.</p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <MetricCard label="Total Properties" value={String(propM.total)} />
+      <MetricCard label="Active Listings" value={String(propM.active)} inverse={true} />
+      <MetricCard label="Total Contacts" value={String(contactM.total)} />
+      <MetricCard label="Won Deals" value={String(dealM.closed)} inverse={true} />
+    </div>
+  </section>
+
+  <section class="crm-frame space-y-6">
+    <h2 class="font-display text-3xl">Deal Conversion Funnel</h2>
+
+    <div class="surface-card rounded-3xl p-8">
+      <div class="space-y-4">
+        {funnelStages.map((stage) => {
+          const cnt = dealM.byStage[stage] ?? 0;
+          const pct = maxCount > 0 ? Math.round((cnt / maxCount) * 100) : 0;
+          return (
+            <div class="flex items-center gap-4">
+              <div class="w-32 shrink-0 text-sm text-[var(--muted)]">{stage}</div>
+              <div class="flex-1 overflow-hidden rounded-full bg-[var(--page-alt)]">
+                <div
+                  class="h-6 rounded-full bg-[var(--accent)] transition-all"
+                  style={`width: ${pct}%`}
+                ></div>
+              </div>
+              <div class="w-8 text-right text-sm font-semibold text-[var(--ink)]">{cnt}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div class="mt-8 grid gap-6 border-t border-[var(--border)] pt-8 md:grid-cols-3">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Pipeline Value</p>
+          <p class="mt-1 font-display text-3xl">{fmt(Number(dealM.totalValue))}</p>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Closed Revenue</p>
+          <p class="mt-1 font-display text-3xl">{fmt(Number(dealM.closedValue))}</p>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Conversion Rate</p>
+          <p class="mt-1 font-display text-3xl">{dealM.conversionRate}%</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="crm-frame space-y-6">
+    <h2 class="font-display text-3xl">Contact Pipeline</h2>
+    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <MetricCard label="New Leads" value={String(contactM.newLeads)} />
+      <MetricCard label="Qualified" value={String(contactM.qualified)} inverse={true} />
+      <MetricCard label="Won" value={String(contactM.won)} />
+      <MetricCard label="Active Listings" value={fmt(propM.totalValue)} />
+    </div>
+  </section>
+</CrmLayout>

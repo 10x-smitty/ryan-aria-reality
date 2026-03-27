@@ -1,0 +1,120 @@
+---
+import CrmLayout from '../../../../layouts/CrmLayout.astro';
+import ActionButton from '../../../../components/ui/ActionButton.astro';
+import InitialAvatar from '../../../../components/ui/InitialAvatar.astro';
+import Icon from '../../../../components/ui/Icon.vue';
+import PropertyGallery from '../../../../components/vue/PropertyGallery.vue';
+import { getPropertyById } from '../../../../services/properties';
+
+const { id } = Astro.params;
+const result = await getPropertyById(id!);
+if (!result) return Astro.redirect('/crm/properties/');
+
+const { properties: p, users: agent, images } = result;
+
+const fmt = (n: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+
+const gallery = images.map((img) => ({ src: img.publicUrl, alt: img.storagePath }));
+
+const details: [string, string][] = [
+  ['Type', p.type.replace('_', ' ')],
+  ['Status', p.status],
+  ...(p.bedrooms !== null ? [['Bedrooms', String(p.bedrooms)] as [string, string]] : []),
+  ...(p.bathrooms !== null ? [['Bathrooms', String(p.bathrooms)] as [string, string]] : []),
+  ...(p.sqft !== null ? [['Sq. Footage', `${p.sqft.toLocaleString()} sqft`] as [string, string]] : []),
+  ...(p.yearBuilt !== null ? [['Year Built', String(p.yearBuilt)] as [string, string]] : []),
+  ...(p.lotSize !== null ? [['Lot Size', `${p.lotSize} acres`] as [string, string]] : []),
+  ...(p.county ? [['County', `${p.county} County, IL`] as [string, string]] : []),
+  ...(p.mlsNumber ? [['MLS #', p.mlsNumber] as [string, string]] : []),
+];
+---
+
+<CrmLayout title={`${p.address} | Properties`} active="properties">
+  <section class="crm-frame space-y-6">
+    <div class="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+      <a href="/crm/properties/" class="hover:text-[var(--ink)]">Properties</a>
+      <Icon name="chevron-right" size={14} />
+      <span class="font-medium text-[var(--ink)]">{p.address}</span>
+    </div>
+
+    <div class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+      <div class="space-y-2">
+        <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">{p.address}</h1>
+        <p class="text-base text-[var(--muted)]">{p.city}, {p.state} {p.zip}</p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <ActionButton href={`/crm/properties/${p.id}/edit`} label="Edit Listing" variant="outline" />
+      </div>
+    </div>
+  </section>
+
+  <section class="crm-frame grid gap-8 xl:grid-cols-[minmax(0,1fr)_400px]">
+    <div class="space-y-6">
+      {gallery.length > 0 ? (
+        <PropertyGallery client:load images={gallery} />
+      ) : (
+        <div class="flex h-64 items-center justify-center rounded-3xl bg-[var(--page-alt)] text-sm text-[var(--muted)]">
+          No images uploaded yet
+        </div>
+      )}
+
+      {p.description && (
+        <article class="surface-card rounded-3xl p-8">
+          <div class="space-y-4">
+            <h2 class="font-display text-[1.7rem]">Property Description</h2>
+            <p class="text-sm leading-7 text-[var(--ink-soft)]">{p.description}</p>
+          </div>
+        </article>
+      )}
+
+      <article class="surface-card rounded-3xl p-8">
+        <div class="space-y-5">
+          <h2 class="font-display text-[1.7rem]">Property Details</h2>
+          <div class="divide-y divide-[var(--border)]">
+            {details.map(([label, value]) => (
+              <div class="flex items-center justify-between gap-6 py-4 text-sm">
+                <span class="text-[var(--ink)]">{label}</span>
+                <span class="font-semibold text-[var(--ink)] capitalize">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <aside class="space-y-6">
+      <article class="rounded-3xl bg-[var(--ink)] p-8 text-[var(--page)] shadow-[var(--shadow-soft)]">
+        <div class="space-y-3">
+          <p class="text-sm text-[var(--muted-light)]">Listing Price</p>
+          <p class="font-display text-[3.25rem] leading-none">{fmt(p.listPrice)}</p>
+          <div class="inline-flex items-center gap-2 text-sm text-[var(--page)]">
+            <span class="size-2 rounded-full bg-white"></span>
+            <span>{p.status}</span>
+          </div>
+        </div>
+      </article>
+
+      {agent && (
+        <article class="surface-card rounded-3xl p-8">
+          <div class="space-y-5">
+            <h2 class="font-display text-[1.7rem]">Assigned Agent</h2>
+            <div class="flex items-center gap-3">
+              <InitialAvatar initials={(agent.fullName ?? agent.email).slice(0, 2).toUpperCase()} />
+              <div>
+                <p class="text-sm font-semibold">{agent.fullName ?? agent.email}</p>
+                <p class="text-sm text-[var(--muted)] capitalize">{agent.role}</p>
+              </div>
+            </div>
+            {agent.email && (
+              <div class="flex items-center gap-3 text-sm text-[var(--ink)]">
+                <Icon name="mail" size={14} class="text-[var(--muted)]" />
+                <span>{agent.email}</span>
+              </div>
+            )}
+          </div>
+        </article>
+      )}
+    </aside>
+  </section>
+</CrmLayout>

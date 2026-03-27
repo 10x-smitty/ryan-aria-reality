@@ -1,0 +1,28 @@
+# Build output
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+
+# Database (SQLite file — contains real data, never commit)
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Uploads (local file storage)
+public/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/

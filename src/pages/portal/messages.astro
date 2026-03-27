@@ -1,0 +1,67 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import MessageThread from '../../components/portal/MessageThread.vue';
+import { getDb } from '../../lib/db/client';
+import { deals, users } from '../../lib/db/schema';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+const db = getDb();
+
+// Find the deal linked to this customer
+const customerDeal = await db
+  .select()
+  .from(deals)
+  .where(eq(deals.customerUserId, user.id))
+  .limit(1)
+  .then((r) => r[0] ?? null);
+
+// Find the assigned agent for the deal
+const agent = customerDeal?.assignedAgentId
+  ? await db
+      .select({ id: users.id, fullName: users.fullName, email: users.email, avatarUrl: users.avatarUrl })
+      .from(users)
+      .where(eq(users.id, customerDeal.assignedAgentId))
+      .limit(1)
+      .then((r) => r[0] ?? null)
+  : null;
+---
+
+<PortalLayout title="Messages" active="messages">
+  <div class="space-y-6">
+    <div>
+      <h1 class="font-display text-4xl text-[var(--ink)]">Messages</h1>
+      <p class="mt-1 text-sm text-[var(--muted)]">
+        {agent ? `Messaging with ${agent.fullName ?? agent.email}` : 'No agent assigned yet.'}
+      </p>
+    </div>
+
+    {!agent ? (
+      <div class="surface-card rounded-2xl p-12 text-center">
+        <p class="text-4xl">💬</p>
+        <p class="mt-3 font-medium text-[var(--ink)]">No active conversation</p>
+        <p class="mt-1 text-sm text-[var(--muted)]">
+          Messaging will be available once your agent links a transaction to your account.
+        </p>
+      </div>
+    ) : (
+      <div class="surface-card rounded-2xl p-6">
+        <div class="mb-5 flex items-center gap-3 border-b border-[var(--border)] pb-5">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)]/20 text-lg font-semibold text-[var(--accent-deep)]">
+            {(agent.fullName ?? agent.email ?? '?')[0].toUpperCase()}
+          </div>
+          <div>
+            <p class="font-semibold text-[var(--ink)]">{agent.fullName ?? agent.email}</p>
+            <p class="text-xs text-[var(--muted)]">Your Agent · Ryan Aria Properties</p>
+          </div>
+        </div>
+        <MessageThread
+          client:load
+          currentUserId={user.id}
+          withUserId={agent.id}
+          dealId={customerDeal?.id}
+        />
+      </div>
+    )}
+  </div>
+</PortalLayout>

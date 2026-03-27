@@ -1,0 +1,69 @@
+---
+import CrmLayout from '../../../layouts/CrmLayout.astro';
+import MetricCard from '../../../components/crm/MetricCard.astro';
+import StatusBadge from '../../../components/crm/StatusBadge.astro';
+import ActionButton from '../../../components/ui/ActionButton.astro';
+import { getAllProperties, getPropertyMetrics } from '../../../services/properties';
+
+const [rows, metrics] = await Promise.all([getAllProperties(), getPropertyMetrics()]);
+
+const fmt = (n: number) =>
+  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n}`;
+---
+
+<CrmLayout title="Property Listings" active="properties">
+  <section class="crm-frame space-y-8">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div class="space-y-3">
+        <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">Property Listings</h1>
+        <p class="text-sm text-[var(--muted)] md:text-base">Active and archived inventory across your portfolio.</p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <ActionButton href="/crm/properties/new" label="Add Property" variant="solid" icon="plus" />
+      </div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-2">
+      <MetricCard label="Active Listings" value={String(metrics.active)} icon="zap" compact={true} />
+      <MetricCard label="Total Value" value={fmt(metrics.totalValue)} icon="credit-card" compact={true} />
+    </div>
+  </section>
+
+  <section class="crm-frame space-y-6">
+    {rows.length === 0 ? (
+      <div class="surface-card rounded-3xl px-8 py-16 text-center">
+        <p class="text-sm text-[var(--muted)]">No properties yet.</p>
+        <div class="mt-4">
+          <ActionButton href="/crm/properties/new" label="Add Your First Property" variant="solid" icon="plus" />
+        </div>
+      </div>
+    ) : (
+      <div class="surface-card overflow-hidden">
+        <div class="overflow-x-auto">
+          <div class="min-w-[1000px]">
+            <div class="grid grid-cols-[1.8fr_1fr_1fr_1fr_1fr_0.7fr] gap-6 bg-[var(--page-alt)] px-6 py-4 text-sm font-medium text-[var(--ink)]">
+              <div>Address</div><div>Type</div><div>Price</div><div>Status</div><div>County</div><div>Agent</div>
+            </div>
+            {rows.map((row, i) => (
+              <div
+                class:list={[
+                  'grid grid-cols-[1.8fr_1fr_1fr_1fr_1fr_0.7fr] items-center gap-6 px-6 py-4',
+                  i < rows.length - 1 && 'border-b border-[var(--border)]',
+                ]}
+              >
+                <a href={`/crm/properties/${row.id}/`} class="text-sm text-[var(--ink)] hover:text-[var(--accent-deep)]">
+                  {row.address}, {row.city}
+                </a>
+                <div class="text-sm text-[var(--muted)] capitalize">{row.type.replace('_', ' ')}</div>
+                <div class="font-display text-2xl leading-none">{fmt(row.listPrice)}</div>
+                <div><StatusBadge label={row.status} tone="dark" /></div>
+                <div class="text-sm text-[var(--muted)]">{row.county ? `${row.county} Co.` : '—'}</div>
+                <div class="text-sm text-[var(--muted)]">{row.agentName ?? '—'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+  </section>
+</CrmLayout>

@@ -1,0 +1,129 @@
+---
+import CrmLayout from '../../../../layouts/CrmLayout.astro';
+import StatusBadge from '../../../../components/crm/StatusBadge.astro';
+import ActionButton from '../../../../components/ui/ActionButton.astro';
+import Icon from '../../../../components/ui/Icon.vue';
+import { getContactById } from '../../../../services/contacts';
+
+const { id } = Astro.params;
+const result = await getContactById(id!);
+if (!result) return Astro.redirect('/crm/contacts/');
+
+const { contacts: c, users: agent, activities } = result;
+
+const fmt = (n: number | null | undefined) =>
+  n ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n) : null;
+
+const budget =
+  c.budgetMin && c.budgetMax
+    ? `${fmt(c.budgetMin)} — ${fmt(c.budgetMax)}`
+    : fmt(c.budgetMax) ?? fmt(c.budgetMin) ?? '—';
+
+const infoLeft: [string, string][] = [
+  ['Email', c.email ?? '—'],
+  ['Phone', c.phone ?? '—'],
+];
+const infoRight: [string, string][] = [
+  ['Status', c.status],
+  ['Source', c.source ?? '—'],
+  ['Budget', budget],
+  ['Lead Score', c.leadScore !== null ? String(c.leadScore) : '—'],
+];
+---
+
+<CrmLayout title={`${c.fullName} | Contacts`} active="contacts">
+  <section class="crm-frame space-y-6">
+    <div class="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+      <a href="/crm/contacts/" class="hover:text-[var(--ink)]">Contacts</a>
+      <Icon name="chevron-right" size={14} />
+      <span class="font-medium text-[var(--ink)]">{c.fullName}</span>
+    </div>
+
+    <div class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+      <div class="space-y-3">
+        <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">{c.fullName}</h1>
+        <div class="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+          <StatusBadge label={c.status} tone="dark" />
+          {c.source && <span>Source: {c.source}</span>}
+          <span>Added {new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        {c.phone && <ActionButton href={`tel:${c.phone}`} label="Call" variant="outline" icon="phone" />}
+        {c.email && <ActionButton href={`mailto:${c.email}`} label="Email" variant="outline" icon="mail" />}
+        <ActionButton href={`/crm/contacts/${c.id}/edit`} label="Edit Contact" variant="solid" />
+      </div>
+    </div>
+  </section>
+
+  <section class="crm-frame grid gap-8 xl:grid-cols-[minmax(0,1fr)_400px]">
+    <div class="space-y-6">
+      <article class="surface-card rounded-3xl p-8">
+        <div class="space-y-5">
+          <h2 class="font-display text-[1.7rem]">Contact Information</h2>
+          <div class="grid gap-8 md:grid-cols-2">
+            <div class="divide-y divide-[var(--border)]">
+              {infoLeft.map(([label, value]) => (
+                <div class="space-y-1 py-4">
+                  <p class="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{label}</p>
+                  <p class="text-sm leading-7 text-[var(--ink)]">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div class="divide-y divide-[var(--border)]">
+              {infoRight.map(([label, value]) => (
+                <div class="space-y-1 py-4">
+                  <p class="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{label}</p>
+                  <p class="text-sm leading-7 text-[var(--ink)]">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          {c.notes && (
+            <div class="rounded-2xl bg-[var(--page-alt)] p-5">
+              <p class="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Notes</p>
+              <p class="mt-2 text-sm leading-7 text-[var(--ink-soft)]">{c.notes}</p>
+            </div>
+          )}
+        </div>
+      </article>
+    </div>
+
+    <aside class="space-y-6">
+      <article class="rounded-3xl bg-[var(--ink)] p-8 text-[var(--page)] shadow-[var(--shadow-soft)]">
+        <div class="space-y-4">
+          <p class="text-sm text-[var(--muted-light)]">Lead Score</p>
+          <p class="font-display text-[5.75rem] leading-none">{c.leadScore ?? '—'}</p>
+          {c.leadScore !== null && (
+            <div class="h-1 w-full bg-[#5c4033]">
+              <div class="h-full bg-[var(--page)]" style={`width:${c.leadScore}%`}></div>
+            </div>
+          )}
+        </div>
+      </article>
+
+      <article class="surface-card rounded-3xl p-8">
+        <div class="space-y-5">
+          <h2 class="font-display text-[1.7rem]">Activity Timeline</h2>
+          {activities.length === 0 ? (
+            <p class="text-sm text-[var(--muted)]">No activity recorded yet.</p>
+          ) : (
+            <div class="space-y-5">
+              {activities.map((a, i) => (
+                <div class:list={['flex gap-3', i < activities.length - 1 && 'border-b border-[var(--border)] pb-5']}>
+                  <span class="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--ink)]"></span>
+                  <div class="space-y-1">
+                    <p class="text-sm text-[var(--ink)]">{a.body}</p>
+                    <p class="text-xs text-[var(--muted)]">
+                      {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </article>
+    </aside>
+  </section>
+</CrmLayout>

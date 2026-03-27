@@ -1,0 +1,32 @@
+import type { APIRoute } from 'astro';
+import { getContactById, updateContact, deleteContact } from '../../../services/contacts';
+import { getSessionUserFromRequest } from '../../../lib/auth/session';
+
+export const GET: APIRoute = async ({ request, params }) => {
+  const user = await getSessionUserFromRequest(request);
+  if (!user || !['admin', 'broker', 'agent'].includes(user.role)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  }
+  const data = await getContactById(params.id!);
+  if (!data) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
+};
+
+export const PUT: APIRoute = async ({ request, params }) => {
+  const user = await getSessionUserFromRequest(request);
+  if (!user || !['admin', 'broker', 'agent'].includes(user.role)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  }
+  const body = await request.json();
+  await updateContact(params.id!, body);
+  return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+};
+
+export const DELETE: APIRoute = async ({ request, params }) => {
+  const user = await getSessionUserFromRequest(request);
+  if (!user || !['admin', 'broker'].includes(user.role)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  }
+  await deleteContact(params.id!);
+  return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+};

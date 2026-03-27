@@ -1,0 +1,1 @@
+ALTER TABLE `deals` ADD `customer_user_id` text REFERENCES users(id);

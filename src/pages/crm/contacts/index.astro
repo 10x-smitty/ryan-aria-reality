@@ -1,0 +1,87 @@
+---
+import CrmLayout from '../../../layouts/CrmLayout.astro';
+import MetricCard from '../../../components/crm/MetricCard.astro';
+import StatusBadge from '../../../components/crm/StatusBadge.astro';
+import ActionButton from '../../../components/ui/ActionButton.astro';
+import InitialAvatar from '../../../components/ui/InitialAvatar.astro';
+import Icon from '../../../components/ui/Icon.vue';
+import { getAllContacts, getContactMetrics } from '../../../services/contacts';
+
+const [rows, metrics] = await Promise.all([getAllContacts(), getContactMetrics()]);
+
+function initials(name: string) {
+  return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+}
+---
+
+<CrmLayout title="Contacts & Leads" active="contacts">
+  <section class="crm-frame space-y-8">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div class="space-y-3">
+        <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">Contacts & Leads</h1>
+        <p class="text-sm text-[var(--muted)] md:text-base">Manage client relationships and track lead progress.</p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <ActionButton href="/crm/contacts/new" label="Add Contact" variant="solid" icon="plus" />
+      </div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <MetricCard label="All Contacts" value={String(metrics.total)} />
+      <MetricCard label="New Leads" value={String(metrics.newLeads)} />
+      <MetricCard label="Qualified" value={String(metrics.qualified)} inverse={true} />
+      <MetricCard label="Won" value={String(metrics.won)} />
+    </div>
+  </section>
+
+  <section class="crm-frame space-y-6">
+    {rows.length === 0 ? (
+      <div class="surface-card rounded-3xl px-8 py-16 text-center">
+        <p class="text-sm text-[var(--muted)]">No contacts yet.</p>
+        <div class="mt-4">
+          <ActionButton href="/crm/contacts/new" label="Add Your First Contact" variant="solid" icon="plus" />
+        </div>
+      </div>
+    ) : (
+      <>
+        <label class="inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--muted)]">
+          <Icon name="search" size={14} />
+          <input
+            class="w-52 bg-transparent text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
+            placeholder="Search contacts..."
+          />
+        </label>
+
+        <div class="surface-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <div class="min-w-[1000px]">
+              <div class="grid grid-cols-[1.5fr_1.4fr_1.2fr_1fr_1fr_0.8fr] gap-6 bg-[var(--page-alt)] px-6 py-4 text-sm font-medium text-[var(--muted)]">
+                <div>Name</div><div>Email</div><div>Phone</div><div>Status</div><div>Source</div><div>Last Updated</div>
+              </div>
+              {rows.map((row, i) => (
+                <div
+                  class:list={[
+                    'grid grid-cols-[1.5fr_1.4fr_1.2fr_1fr_1fr_0.8fr] items-center gap-6 px-6 py-4',
+                    i < rows.length - 1 && 'border-t border-[var(--border)]',
+                  ]}
+                >
+                  <a href={`/crm/contacts/${row.id}/`} class="flex items-center gap-3 hover:text-[var(--accent-deep)]">
+                    <InitialAvatar initials={initials(row.fullName)} size={32} />
+                    <span class="text-sm text-[var(--ink)]">{row.fullName}</span>
+                  </a>
+                  <div class="text-sm text-[var(--ink)]">{row.email ?? '—'}</div>
+                  <div class="text-sm text-[var(--ink)]">{row.phone ?? '—'}</div>
+                  <div><StatusBadge label={row.status} tone="dark" /></div>
+                  <div class="text-sm text-[var(--muted)]">{row.source ?? '—'}</div>
+                  <div class="text-sm text-[var(--muted)]">
+                    {new Date(row.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+  </section>
+</CrmLayout>

@@ -1,0 +1,78 @@
+---
+import Icon from '../ui/Icon.vue';
+import type { SessionUser } from '../../lib/auth/session';
+
+type NavId = 'dashboard' | 'properties' | 'contacts' | 'deals' | 'reports' | 'site';
+
+interface Props {
+  active: NavId;
+  user?: SessionUser | null;
+}
+
+const { active, user } = Astro.props;
+
+const nav: { id: NavId; label: string; href: string }[] = [
+  { id: 'dashboard', label: 'Dashboard', href: '/crm/' },
+  { id: 'properties', label: 'Properties', href: '/crm/properties/' },
+  { id: 'contacts', label: 'Contacts', href: '/crm/contacts/' },
+  { id: 'deals', label: 'Deals', href: '/crm/deals/' },
+  { id: 'reports', label: 'Reports', href: '/crm/reports/' },
+  { id: 'site', label: 'Site', href: '/crm/cms/' },
+];
+---
+
+<header class="bg-[var(--ink)] text-[var(--page)]">
+  <div class="crm-frame flex min-h-16 flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between md:py-0">
+    <div class="flex items-center gap-4">
+      <a
+        href="/"
+        class="inline-flex size-9 items-center justify-center rounded-full border border-white/12 bg-white/6 text-[var(--page)]"
+        aria-label="Ryan Aria Properties — public site"
+      >
+        <Icon name="house" size={16} />
+      </a>
+      <nav class="overflow-x-auto">
+        <ul class="flex min-w-max items-center gap-4 text-sm text-[var(--muted-light)]">
+          {nav.map((item, index) => {
+            const isActive = item.id === active;
+            return (
+              <>
+                <li>
+                  <a
+                    href={item.href}
+                    class:list={[
+                      'whitespace-nowrap transition hover:text-[var(--page)]',
+                      isActive && 'font-medium text-[var(--page)]',
+                    ]}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+                {index < nav.length - 1 && (
+                  <li aria-hidden="true" class="size-1 rounded-full bg-[#5c4033]"></li>
+                )}
+              </>
+            );
+          })}
+        </ul>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-3">
+      {user && (
+        <span class="hidden text-xs text-[var(--muted-light)] md:block">
+          {user.fullName ?? user.email}
+        </span>
+      )}
+      <form method="POST" action="/api/auth/signout">
+        <button
+          type="submit"
+          class="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1.5 text-xs text-[var(--page)] transition hover:bg-white/10"
+        >
+          <Icon name="log-out" size={12} />
+          <span>Sign out</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</header>

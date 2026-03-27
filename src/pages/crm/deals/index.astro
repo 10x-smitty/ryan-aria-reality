@@ -1,0 +1,51 @@
+---
+import CrmLayout from '../../../layouts/CrmLayout.astro';
+import MetricCard from '../../../components/crm/MetricCard.astro';
+import ActionButton from '../../../components/ui/ActionButton.astro';
+import DealsBoard from '../../../components/vue/DealsBoard.vue';
+import { getDealsGroupedByStage, getDealMetrics, DEAL_STAGES } from '../../../services/deals';
+
+const [grouped, metrics] = await Promise.all([getDealsGroupedByStage(), getDealMetrics()]);
+
+const lanes = DEAL_STAGES.map((stage) => ({
+  stage,
+  deals: grouped[stage] ?? [],
+}));
+
+const fmt = (n: number) =>
+  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n}`;
+---
+
+<CrmLayout title="Deals Pipeline" active="deals">
+  <section class="crm-frame space-y-8">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div class="space-y-3">
+        <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">Deals Pipeline</h1>
+        <p class="text-sm text-[var(--muted)] md:text-base">Track every deal from first contact to close.</p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <ActionButton href="/crm/contacts/new" label="Add Deal" variant="solid" icon="plus" />
+      </div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <MetricCard label="Total Deals" value={String(metrics.total)} />
+      <MetricCard label="Under Contract" value={String(metrics.byStage['Under Contract'] ?? 0)} />
+      <MetricCard label="Closed" value={String(metrics.closed)} inverse={true} />
+      <MetricCard label="Pipeline Value" value={fmt(Number(metrics.totalValue))} />
+    </div>
+  </section>
+
+  <section class="crm-frame space-y-6">
+    <div class="flex flex-wrap gap-3">
+      {DEAL_STAGES.map((stage) => (
+        <span class="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--page-alt)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+          <span>{stage}</span>
+          <span class="text-[var(--ink)]">{metrics.byStage[stage] ?? 0}</span>
+        </span>
+      ))}
+    </div>
+
+    <DealsBoard client:load lanes={lanes} />
+  </section>
+</CrmLayout>

@@ -1,0 +1,323 @@
+---
+import CrmLayout from '../../../../layouts/CrmLayout.astro';
+import Icon from '../../../../components/ui/Icon.vue';
+import { getDealById } from '../../../../services/deals';
+import { getDocumentsByDeal } from '../../../../services/documents';
+import { getMilestones } from '../../../../services/transaction-timeline';
+import { getDb } from '../../../../lib/db/client';
+import { users } from '../../../../lib/db/schema';
+import { eq } from 'drizzle-orm';
+
+const { id } = Astro.params;
+const result = await getDealById(id!);
+if (!result) return Astro.redirect('/crm/deals/');
+
+// getDealById returns joined row with table-namespaced keys
+const { deals: deal, contacts: contact, properties: property, users: agent, activities } = result as any;
+
+const db = getDb();
+const customerUser = deal.customerUserId
+  ? await db.select({ id: users.id, fullName: users.fullName, email: users.email })
+      .from(users)
+      .where(eq(users.id, deal.customerUserId))
+      .limit(1)
+      .then((r: any[]) => r[0] ?? null)
+  : null;
+
+const documents = await getDocumentsByDeal(id!);
+const milestones = await getMilestones(id!);
+
+const fmt = (n: number | null | undefined) =>
+  n ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n) : '—';
+---
+
+<CrmLayout title={`${deal.title} | Deals`} active="deals">
+  <section class="crm-frame space-y-8">
+    <!-- Breadcrumb -->
+    <div class="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+      <a href="/crm/deals/" class="hover:text-[var(--ink)]">Deals</a>
+      <Icon name="chevron-right" size={14} client:load />
+      <span class="font-medium text-[var(--ink)]">{deal.title}</span>
+    </div>
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <span class="rounded-full bg-[var(--accent)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[var(--accent-deep)]">
+          {deal.stage}
+        </span>
+        <h1 class="mt-2 font-display text-4xl text-[var(--ink)]">{deal.title}</h1>
+        {deal.dealValue && (
+          <p class="mt-1 text-2xl font-semibold text-[var(--muted)]">{fmt(deal.dealValue)}</p>
+        )}
+      </div>
+      <div class="flex gap-3">
+        <a href={`/crm/deals/`} class="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--muted)] transition hover:border-[var(--ink)] hover:text-[var(--ink)]">
+          ← Back to Board
+        </a>
+      </div>
+    </div>
+
+    <!-- Info grid -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {[
+        ['Contact', contact?.fullName ?? '—'],
+        ['Property', property?.address ? `${property.address}, ${property.city}` : '—'],
+        ['Agent', agent?.fullName ?? '—'],
+        ['Commission Rate', deal.commissionRate ? `${deal.commissionRate}%` : '—'],
+        ['Close Date', deal.closeDate ? new Date(deal.closeDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'],
+        ['Customer Portal', customerUser ? (customerUser.fullName ?? customerUser.email) : 'Not linked'],
+      ].map(([label, value]) => (
+        <div class="surface-card rounded-2xl p-5">
+          <p class="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">{label}</p>
+          <p class="mt-1.5 font-medium text-[var(--ink)]">{value}</p>
+        </div>
+      ))}
+    </div>
+
+    {deal.notes && (
+      <div class="surface-card rounded-2xl p-5">
+        <p class="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">Notes</p>
+        <p class="text-sm text-[var(--ink)]">{deal.notes}</p>
+      </div>
+    )}
+
+    <!-- Two-column section: Documents + Timeline -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+      <!-- Documents panel -->
+      <div class="surface-card rounded-2xl p-6">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">Documents</h2>
+          <span class="rounded-full bg-[var(--page-alt)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted)]">
+            {documents.length}
+          </span>
+        </div>
+
+        {documents.length > 0 ? (
+          <ul class="mb-4 space-y-2">
+            {documents.map((doc: any) => (
+              <li class="flex items-center justify-between rounded-xl bg-[var(--page-alt)] px-4 py-3 text-sm">
+                <div>
+                  <p class="font-medium text-[var(--ink)]">{doc.name}</p>
+                  <p class="text-xs text-[var(--muted)]">
+                    {doc.isVisibleToCustomer ? '✓ Visible to client' : 'Hidden from client'}
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    class="toggle-visibility text-xs text-[var(--muted)] hover:text-[var(--ink)]"
+                    data-id={doc.id}
+                    data-visible={String(doc.isVisibleToCustomer)}
+                  >
+                    {doc.isVisibleToCustomer ? 'Hide' : 'Show'}
+                  </button>
+                  <button
+                    class="delete-doc text-xs text-red-500 hover:text-red-700"
+                    data-id={doc.id}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="mb-4 text-sm text-[var(--muted)]">No documents yet.</p>
+        )}
+
+        <!-- Upload form -->
+        <form id="upload-doc-form" class="space-y-3 border-t border-[var(--border)] pt-4" data-deal-id={id}>
+          <p class="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">Upload Document</p>
+          <input
+            type="file"
+            id="doc-file"
+            class="w-full text-sm text-[var(--muted)]"
+          />
+          <input
+            type="text"
+            id="doc-name"
+            placeholder="Document name"
+            class="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent-deep)]"
+          />
+          <label class="flex items-center gap-2 text-sm text-[var(--muted)]">
+            <input type="checkbox" id="doc-visible" class="rounded" />
+            Visible to customer portal
+          </label>
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-[var(--ink)] py-2.5 text-sm font-semibold text-[var(--page)] transition hover:opacity-90"
+          >
+            Upload
+          </button>
+          <p id="upload-status" class="text-xs text-[var(--muted)]"></p>
+        </form>
+      </div>
+
+      <!-- Transaction Timeline panel -->
+      <div class="surface-card rounded-2xl p-6">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">Transaction Timeline</h2>
+          <span class="rounded-full bg-[var(--page-alt)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted)]">
+            {milestones.filter((m: any) => m.completedAt).length}/{milestones.length}
+          </span>
+        </div>
+
+        <ul id="milestones-list" class="mb-4 space-y-2">
+          {milestones.map((m: any) => (
+            <li class="flex items-center justify-between rounded-xl bg-[var(--page-alt)] px-4 py-3 text-sm" data-id={m.id}>
+              <div class="flex items-center gap-3">
+                <button
+                  class="toggle-milestone flex h-5 w-5 items-center justify-center rounded-full border text-xs transition"
+                  class:list={[m.completedAt ? 'border-green-500 bg-green-500 text-white' : 'border-[var(--border)] text-transparent']}
+                  data-id={m.id}
+                  data-completed={String(!!m.completedAt)}
+                  title={m.completedAt ? 'Mark incomplete' : 'Mark complete'}
+                >
+                  ✓
+                </button>
+                <span class={m.completedAt ? 'line-through text-[var(--muted)]' : 'text-[var(--ink)]'}>
+                  {m.milestone}
+                </span>
+              </div>
+              <button class="delete-milestone text-xs text-red-500 hover:text-red-700" data-id={m.id}>
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {milestones.length === 0 && (
+          <p class="mb-4 text-sm text-[var(--muted)]">No milestones yet.</p>
+        )}
+
+        <!-- Add milestone form -->
+        <form id="add-milestone-form" class="space-y-3 border-t border-[var(--border)] pt-4" data-deal-id={id}>
+          <p class="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">Add Milestone</p>
+          <input
+            type="text"
+            id="milestone-text"
+            placeholder="e.g., Home inspection scheduled"
+            class="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent-deep)]"
+          />
+          <label class="flex items-center gap-2 text-sm text-[var(--muted)]">
+            <input type="checkbox" id="milestone-visible" checked class="rounded" />
+            Visible to customer portal
+          </label>
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-[var(--ink)] py-2.5 text-sm font-semibold text-[var(--page)] transition hover:opacity-90"
+          >
+            Add Milestone
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</CrmLayout>
+
+<script>
+  // ── Documents ────────────────────────────────────────────────────────────────
+
+  const uploadForm = document.getElementById('upload-doc-form') as HTMLFormElement | null;
+  const uploadStatus = document.getElementById('upload-status');
+
+  uploadForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dealId = uploadForm.dataset.dealId;
+    const fileInput = document.getElementById('doc-file') as HTMLInputElement;
+    const nameInput = document.getElementById('doc-name') as HTMLInputElement;
+    const visibleInput = document.getElementById('doc-visible') as HTMLInputElement;
+
+    const file = fileInput.files?.[0];
+    if (!file) { uploadStatus!.textContent = 'Select a file first.'; return; }
+    const name = nameInput.value.trim() || file.name;
+
+    uploadStatus!.textContent = 'Uploading…';
+
+    // Upload file first
+    const formData = new FormData();
+    formData.append('file', file);
+    const uploadRes = await fetch('/api/uploads', { method: 'POST', body: formData });
+    if (!uploadRes.ok) { uploadStatus!.textContent = 'Upload failed.'; return; }
+    const { path: storagePath, url: publicUrl } = await uploadRes.json();
+
+    // Create document record
+    const docRes = await fetch('/api/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, storagePath, publicUrl, dealId, isVisibleToCustomer: visibleInput.checked }),
+    });
+    if (!docRes.ok) { uploadStatus!.textContent = 'Failed to save record.'; return; }
+    uploadStatus!.textContent = 'Uploaded!';
+    setTimeout(() => location.reload(), 800);
+  });
+
+  document.querySelectorAll('.toggle-visibility').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const el = btn as HTMLElement;
+      const id = el.dataset.id;
+      const current = el.dataset.visible === 'true';
+      await fetch('/api/documents', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, visible: !current }),
+      });
+      location.reload();
+    });
+  });
+
+  document.querySelectorAll('.delete-doc').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = (btn as HTMLElement).dataset.id;
+      if (!confirm('Delete this document?')) return;
+      await fetch(`/api/documents?id=${id}`, { method: 'DELETE' });
+      (btn.closest('li') as HTMLElement)?.remove();
+    });
+  });
+
+  // ── Milestones ───────────────────────────────────────────────────────────────
+
+  const milestoneForm = document.getElementById('add-milestone-form') as HTMLFormElement | null;
+  const milestonesList = document.getElementById('milestones-list');
+  let sortOrder = document.querySelectorAll('#milestones-list li').length;
+
+  milestoneForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dealId = milestoneForm.dataset.dealId;
+    const text = (document.getElementById('milestone-text') as HTMLInputElement).value.trim();
+    const visible = (document.getElementById('milestone-visible') as HTMLInputElement).checked;
+    if (!text) return;
+
+    const res = await fetch('/api/transaction-timeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dealId, milestone: text, sortOrder: sortOrder++, isVisibleToCustomer: visible }),
+    });
+    if (!res.ok) return;
+    location.reload();
+  });
+
+  document.querySelectorAll('.toggle-milestone').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const el = btn as HTMLElement;
+      const id = el.dataset.id;
+      const completed = el.dataset.completed !== 'true';
+      await fetch(`/api/transaction-timeline/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed }),
+      });
+      location.reload();
+    });
+  });
+
+  document.querySelectorAll('.delete-milestone').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = (btn as HTMLElement).dataset.id;
+      if (!confirm('Delete this milestone?')) return;
+      await fetch(`/api/transaction-timeline/${id}`, { method: 'DELETE' });
+      (btn.closest('li') as HTMLElement)?.remove();
+    });
+  });
+</script>

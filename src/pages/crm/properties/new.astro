@@ -1,0 +1,19 @@
+---
+import CrmLayout from '../../../layouts/CrmLayout.astro';
+import Icon from '../../../components/ui/Icon.vue';
+import PropertyForm from '../../../components/crm/PropertyForm.vue';
+---
+
+<CrmLayout title="Add Property" active="properties">
+  <section class="crm-frame space-y-6">
+    <div class="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+      <a href="/crm/properties/" class="hover:text-[var(--ink)]">Properties</a>
+      <Icon name="chevron-right" size={14} />
+      <span class="font-medium text-[var(--ink)]">New Property</span>
+    </div>
+    <h1 class="font-display text-5xl leading-none md:text-[4.2rem]">Add Property</h1>
+  </section>
+  <section class="crm-frame">
+    <PropertyForm client:load />
+  </section>
+</CrmLayout>

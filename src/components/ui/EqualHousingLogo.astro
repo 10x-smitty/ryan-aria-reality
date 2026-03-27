@@ -1,0 +1,29 @@
+---
+/**
+ * Equal Housing Opportunity logo — required on all real estate marketing materials.
+ * Renders the standard fair housing "house with equal sign" symbol as inline SVG.
+ */
+interface Props {
+  size?: number;
+  class?: string;
+}
+const { size = 24, class: className = '' } = Astro.props;
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 100 100"
+  width={size}
+  height={size}
+  class={className}
+  aria-label="Equal Housing Opportunity"
+  role="img"
+>
+  <!-- House shape -->
+  <polygon points="50,5 95,45 85,45 85,95 15,95 15,45 5,45" fill="currentColor" />
+  <!-- Door cutout -->
+  <rect x="38" y="62" width="24" height="33" fill="white" />
+  <!-- Equal sign bars -->
+  <rect x="30" y="48" width="40" height="7" fill="white" rx="1" />
+  <rect x="30" y="60" width="40" height="7" fill="white" rx="1" />
+</svg>

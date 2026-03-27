@@ -1,0 +1,72 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getSessionUserFromRequest } from '../../lib/auth/session';
+
+const user = await getSessionUserFromRequest(Astro.request);
+if (user && user.role === 'customer') {
+  return Astro.redirect('/portal/');
+}
+
+const error = Astro.url.searchParams.get('error');
+---
+
+<BaseLayout title="Client Portal | Ryan Aria Properties">
+  <div class="flex min-h-svh items-center justify-center bg-[var(--page-alt)] px-4 py-16">
+    <div class="w-full max-w-sm space-y-8">
+      <div class="space-y-2 text-center">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-deep)]">Ryan Aria Properties</p>
+        <h1 class="font-display text-4xl">Client Portal</h1>
+        <p class="text-sm text-[var(--muted)]">Sign in to access your transaction dashboard.</p>
+      </div>
+
+      {error && (
+        <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          {error === 'invalid' ? 'Invalid email or password.' : 'Something went wrong. Try again.'}
+        </div>
+      )}
+
+      <form method="POST" action="/api/auth/portal-signin" class="surface-card space-y-5 rounded-3xl p-8">
+        <div class="space-y-2">
+          <label for="email" class="block text-xs font-medium uppercase tracking-[0.15em] text-[var(--muted)]">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autocomplete="email"
+            class="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent-deep)] focus:ring-2 focus:ring-[var(--accent)]/20"
+            placeholder="you@example.com"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <label for="password" class="block text-xs font-medium uppercase tracking-[0.15em] text-[var(--muted)]">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            autocomplete="current-password"
+            class="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent-deep)] focus:ring-2 focus:ring-[var(--accent)]/20"
+            placeholder="••••••••"
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="w-full rounded-xl bg-[var(--ink)] px-6 py-3 text-sm font-semibold text-[var(--page)] transition hover:opacity-90"
+        >
+          Sign In
+        </button>
+      </form>
+
+      <p class="text-center text-xs text-[var(--muted)]">
+        <a href="/" class="hover:text-[var(--ink)]">← Back to public site</a>
+      </p>
+    </div>
+  </div>
+</BaseLayout>

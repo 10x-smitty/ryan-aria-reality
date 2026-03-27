@@ -1,0 +1,43 @@
+---
+import Icon from '../ui/Icon.vue';
+
+interface Props {
+  label: string;
+  value: string;
+  inverse?: boolean;
+  icon?: string;
+  compact?: boolean;
+}
+
+const { label, value, inverse = false, icon, compact = false } = Astro.props;
+---
+
+<article
+  class:list={[
+    'border px-7 py-6',
+    inverse
+      ? 'border-transparent bg-[var(--ink)] text-[var(--page)] shadow-[var(--shadow-soft)]'
+      : 'bg-white/80 text-[var(--ink)]',
+  ]}
+>
+  {icon ? (
+    <div class="flex items-center gap-5">
+      <div class="inline-flex size-11 items-center justify-center bg-[var(--ink)] text-[var(--page)]">
+        <Icon name={icon} size={20} />
+      </div>
+      <div class="space-y-1">
+        <p class="text-[13px] text-[var(--muted)]">{label}</p>
+        <p class:list={['font-display leading-none', compact ? 'text-3xl' : 'text-5xl', inverse && 'text-[var(--page)]']}>
+          {value}
+        </p>
+      </div>
+    </div>
+  ) : (
+    <div class="space-y-2">
+      <p class="text-[13px] text-[var(--muted)]">{label}</p>
+      <p class:list={['font-display leading-none', compact ? 'text-3xl' : 'text-5xl', inverse && 'text-[var(--page)]']}>
+        {value}
+      </p>
+    </div>
+  )}
+</article>

@@ -1,0 +1,53 @@
+---
+/**
+ * Illinois IDFPR compliance bar — injected into BaseLayout footer on every page.
+ * Renders all 4 required compliance elements:
+ *   1. IDFPR managing broker license number
+ *   2. Illinois RELA agency disclosure
+ *   3. Equal Housing Opportunity logo + statement
+ *   4. IDX attribution (conditional — shown only on pages with MLS data)
+ */
+import EqualHousingLogo from './EqualHousingLogo.astro';
+import {
+  AGENCY_DISCLOSURE_SHORT,
+  EQUAL_HOUSING_SHORT,
+  IDX_ATTRIBUTION_SHORT,
+  BROKERAGE_NAME,
+} from '../../lib/utils/illinois-compliance';
+
+interface Props {
+  /** Set to true on search results and listing detail pages to show IDX attribution */
+  showIdxAttribution?: boolean;
+}
+
+const { showIdxAttribution = false } = Astro.props;
+---
+
+<aside
+  class="compliance-bar border-t border-[var(--border)] bg-[var(--page-alt)] py-4 text-xs text-[var(--ink)]/50"
+  aria-label="Legal compliance information"
+>
+  <div class="crm-frame space-y-2">
+    <!-- Row 1: EHO logo + license disclosure -->
+    <div class="flex flex-wrap items-start gap-3">
+      <EqualHousingLogo size={28} class="mt-0.5 shrink-0 text-[var(--ink)]/40" />
+      <div class="flex-1 space-y-1">
+        <p class="font-medium text-[var(--ink)]/60">{EQUAL_HOUSING_SHORT}</p>
+        <p>{AGENCY_DISCLOSURE_SHORT}</p>
+      </div>
+    </div>
+
+    <!-- Row 2: IDX attribution (MLS pages only) -->
+    {
+      showIdxAttribution && (
+        <p class="border-t border-[var(--border)] pt-2">{IDX_ATTRIBUTION_SHORT}</p>
+      )
+    }
+
+    <!-- Row 3: Copyright -->
+    <p class="border-t border-[var(--border)] pt-2">
+      &copy; {new Date().getFullYear()}
+      {BROKERAGE_NAME}. All rights reserved.
+    </p>
+  </div>
+</aside>

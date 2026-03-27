@@ -1,0 +1,96 @@
+---
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { getDb } from '../../../lib/db/client';
+import { deals } from '../../../lib/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { getMilestones } from '../../../services/transaction-timeline';
+
+const user = Astro.locals.user!;
+const { dealId } = Astro.params;
+const db = getDb();
+
+// Ensure this deal belongs to the logged-in customer
+const deal = await db
+  .select()
+  .from(deals)
+  .where(and(eq(deals.id, dealId!), eq(deals.customerUserId, user.id)))
+  .limit(1)
+  .then((r) => r[0] ?? null);
+
+if (!deal) {
+  return Astro.redirect('/portal/');
+}
+
+const milestones = await getMilestones(deal.id, true);
+const completedCount = milestones.filter((m) => m.completedAt).length;
+---
+
+<PortalLayout title="Transaction Timeline" active="transaction">
+  <div class="space-y-8">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--accent-deep)]">Transaction</p>
+        <h1 class="mt-1 font-display text-4xl text-[var(--ink)]">{deal.title}</h1>
+        <p class="mt-2 text-sm text-[var(--muted)]">
+          Stage: <span class="font-semibold text-[var(--ink)]">{deal.stage}</span>
+          {deal.closeDate && (
+            <> · Expected close: <span class="font-semibold text-[var(--ink)]">{new Date(deal.closeDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span></>
+          )}
+        </p>
+      </div>
+      {milestones.length > 0 && (
+        <div class="hidden rounded-2xl border border-[var(--border)] px-5 py-3 text-center sm:block">
+          <p class="text-2xl font-bold text-[var(--ink)]">{completedCount}/{milestones.length}</p>
+          <p class="text-xs text-[var(--muted)]">Complete</p>
+        </div>
+      )}
+    </div>
+
+    {milestones.length === 0 ? (
+      <div class="surface-card rounded-2xl p-12 text-center">
+        <p class="text-4xl">📋</p>
+        <p class="mt-3 font-medium text-[var(--ink)]">No milestones yet</p>
+        <p class="mt-1 text-sm text-[var(--muted)]">Your agent will add transaction milestones as the process progresses.</p>
+      </div>
+    ) : (
+      <div class="surface-card rounded-2xl p-6">
+        <h2 class="mb-6 text-sm font-semibold uppercase tracking-[0.15em] text-[var(--muted)]">Milestones</h2>
+        <ol class="relative space-y-0 border-l-2 border-[var(--border)] pl-8">
+          {milestones.map((m, i) => (
+            <li class={['relative pb-8 last:pb-0'].join('')}>
+              <span class={[
+                'absolute -left-[calc(1rem+1px)] flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold',
+                m.completedAt
+                  ? 'border-[var(--accent-deep)] bg-[var(--accent-deep)] text-white'
+                  : 'border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]',
+              ].join(' ')}>
+                {m.completedAt ? '✓' : i + 1}
+              </span>
+              <div class="pt-1">
+                <p class={['font-medium', m.completedAt ? 'text-[var(--ink)]' : 'text-[var(--muted)]'].join(' ')}>
+                  {m.milestone}
+                </p>
+                {m.completedAt ? (
+                  <p class="mt-0.5 text-xs text-green-600">
+                    Completed {new Date(m.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                ) : (
+                  <p class="mt-0.5 text-xs text-[var(--muted)]">Pending</p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    )}
+
+    <div class="flex gap-4">
+      <a href="/portal/documents" class="rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--page-alt)]">
+        View Documents
+      </a>
+      <a href="/portal/messages" class="rounded-xl bg-[var(--ink)] px-5 py-3 text-sm font-semibold text-[var(--page)] transition hover:opacity-90">
+        Message Agent
+      </a>
+    </div>
+  </div>
+</PortalLayout>

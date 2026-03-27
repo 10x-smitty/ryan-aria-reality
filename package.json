@@ -1,0 +1,42 @@
+{
+  "name": "ryan-aria-realty",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx src/lib/db/seed.ts"
+  },
+  "dependencies": {
+    "@astrojs/node": "^10.0.4",
+    "@astrojs/vue": "^6.0.1",
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "^6.0.8",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.8.0",
+    "drizzle-orm": "^0.45.1",
+    "lucide-vue-next": "^1.0.0",
+    "tailwindcss": "^4.2.2",
+    "vue": "^3.5.30"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild",
+      "sharp"
+    ]
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

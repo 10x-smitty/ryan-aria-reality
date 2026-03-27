@@ -1,0 +1,18 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import CrmHeader from '../components/crm/CrmHeader.astro';
+
+interface Props {
+  title: string;
+  active: 'dashboard' | 'properties' | 'contacts' | 'deals' | 'reports' | 'site';
+}
+
+const { title, active } = Astro.props;
+---
+
+<BaseLayout title={`${title} | Ryan Aria Properties`}>
+  <CrmHeader active={active} user={Astro.locals.user} />
+  <main class="space-y-12 pb-16 pt-12">
+    <slot />
+  </main>
+</BaseLayout>
