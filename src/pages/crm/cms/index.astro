@@ -47,7 +47,7 @@ const header = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria P
     </a>
   </section>
 
-  <section class="crm-frame space-y-8">
+  <section class="crm-frame space-y-6">
     <!-- Header -->
     <ContentEditor
       client:load
@@ -57,6 +57,7 @@ const header = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria P
         logoUrl: header.logoUrl ?? '',
         brandText: header.brandText ?? 'Ryan Aria Properties',
         navLinksRaw: (header.navLinks ?? []).map(([l, h]: [string, string]) => `${l} | ${h}`).join('\n'),
+        enabled: header.enabled,
       }}
       fields={[
         { key: 'logoUrl', label: 'Logo image URL (leave blank to show brand text)', type: 'url', hint: 'Paste a URL to your logo image (PNG, SVG)' },
@@ -102,7 +103,7 @@ const header = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria P
       client:load
       slug="stats"
       title="Stats Bar"
-      initialContent={{ itemsRaw: (stats.items ?? []).map(([v, l]: [string, string]) => `${v} | ${l}`).join('\n') }}
+      initialContent={{ itemsRaw: (stats.items ?? []).map(([v, l]: [string, string]) => `${v} | ${l}`).join('\n'), enabled: stats.enabled }}
       fields={[
         { key: 'itemsRaw', label: 'Stats (format: value | label, one per line)', type: 'list', hint: '2,400+ | Properties Sold' },
       ]}
