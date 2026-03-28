@@ -14,17 +14,9 @@ const props = defineProps<{
 }>();
 
 const content = ref<Record<string, any>>(JSON.parse(JSON.stringify(props.initialContent)));
-const enabled = ref<boolean>(props.initialContent.enabled !== false);
-const collapsed = ref<boolean>(props.initialContent.enabled === false);
 const saving = ref(false);
 const saved = ref(false);
 const error = ref('');
-
-function toggleEnabled() {
-  enabled.value = !enabled.value;
-  if (!enabled.value) collapsed.value = true;
-  else collapsed.value = false;
-}
 
 // Helpers for list fields
 function listVal(key: string): string[] {
@@ -45,7 +37,7 @@ async function save() {
     const res = await fetch(`/api/cms/${props.slug}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...content.value, enabled: enabled.value }),
+      body: JSON.stringify(content.value),
     });
     if (!res.ok) throw new Error(await res.text());
     saved.value = true;
@@ -59,125 +51,66 @@ async function save() {
 </script>
 
 <template>
-  <div
-    :class="[
-      'surface-card overflow-hidden rounded-3xl transition-opacity duration-200',
-      enabled ? '' : 'opacity-60',
-    ]"
-  >
-    <!-- Header bar — always visible -->
-    <div class="flex flex-wrap items-center justify-between gap-3 p-8">
+  <div class="surface-card space-y-6 rounded-3xl p-8">
+    <div class="flex items-center justify-between gap-4">
+      <h2 class="font-display text-[1.7rem]">{{ title }}</h2>
       <div class="flex items-center gap-3">
-        <!-- Collapse chevron -->
+        <span v-if="saved" class="text-sm text-green-600">✓ Saved</span>
+        <span v-if="error" class="text-sm text-red-600">{{ error }}</span>
         <button
-          type="button"
-          @click="collapsed = !collapsed"
-          class="text-[var(--muted)] transition hover:text-[var(--ink)]"
-          :aria-label="collapsed ? 'Expand section' : 'Collapse section'"
+          @click="save"
+          :disabled="saving"
+          class="rounded-xl bg-[var(--ink)] px-5 py-2 text-sm font-semibold text-[var(--page)] transition hover:opacity-90 disabled:opacity-50"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-            :style="{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          {{ saving ? 'Saving…' : 'Save' }}
         </button>
-        <h2 class="font-display text-[1.7rem]">{{ title }}</h2>
-        <span
-          v-if="!enabled"
-          class="rounded-full bg-[var(--page-alt)] px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--muted)]"
-        >
-          Hidden on site
-        </span>
       </div>
+    </div>
 
-      <div class="flex flex-wrap items-center gap-4">
-        <!-- Visible / Hidden toggle -->
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-[var(--muted)]">{{ enabled ? 'Visible' : 'Hidden' }}</span>
+    <div class="grid gap-5 md:grid-cols-2">
+      <template v-for="field in fields" :key="field.key">
+        <div :class="field.type === 'textarea' || field.type === 'list' ? 'md:col-span-2' : ''">
+          <label class="field-label">{{ field.label }}</label>
+          <textarea
+            v-if="field.type === 'textarea'"
+            v-model="content[field.key]"
+            rows="4"
+            class="field-input resize-y"
+          ></textarea>
+          <textarea
+            v-else-if="field.type === 'list'"
+            :value="listStr(field.key)"
+            @input="updateList(field.key, ($event.target as HTMLTextAreaElement).value)"
+            rows="4"
+            class="field-input resize-y font-mono text-xs"
+            :placeholder="(field as any).hint ?? 'One item per line'"
+          ></textarea>
           <button
+            v-else-if="field.type === 'toggle'"
             type="button"
             role="switch"
-            :aria-checked="enabled"
-            @click="toggleEnabled"
+            :aria-checked="!!content[field.key]"
+            @click="content[field.key] = !content[field.key]"
             :class="[
               'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200',
-              enabled ? 'bg-[var(--accent-deep)]' : 'bg-[var(--border)]',
+              content[field.key] ? 'bg-[var(--accent-deep)]' : 'bg-[var(--border)]',
             ]"
           >
             <span
               :class="[
                 'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200',
-                enabled ? 'translate-x-5' : 'translate-x-0',
+                content[field.key] ? 'translate-x-5' : 'translate-x-0',
               ]"
             />
           </button>
+          <input
+            v-else
+            v-model="content[field.key]"
+            :type="field.type"
+            class="field-input"
+          />
         </div>
-
-        <!-- Status + Save -->
-        <div class="flex items-center gap-3">
-          <span v-if="saved" class="text-sm text-green-600">✓ Saved</span>
-          <span v-if="error" class="max-w-xs truncate text-sm text-red-600">{{ error }}</span>
-          <button
-            @click="save"
-            :disabled="saving"
-            class="rounded-xl bg-[var(--ink)] px-5 py-2 text-sm font-semibold text-[var(--page)] transition hover:opacity-90 disabled:opacity-50"
-          >
-            {{ saving ? 'Saving…' : 'Save' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Collapsible fields -->
-    <div v-show="!collapsed" class="border-t border-[var(--border)] p-8">
-      <div class="grid gap-5 md:grid-cols-2">
-        <template v-for="field in fields" :key="field.key">
-          <div :class="field.type === 'textarea' || field.type === 'list' ? 'md:col-span-2' : ''">
-            <label class="field-label">{{ field.label }}</label>
-            <textarea
-              v-if="field.type === 'textarea'"
-              v-model="content[field.key]"
-              rows="4"
-              class="field-input resize-y"
-            ></textarea>
-            <textarea
-              v-else-if="field.type === 'list'"
-              :value="listStr(field.key)"
-              @input="updateList(field.key, ($event.target as HTMLTextAreaElement).value)"
-              rows="4"
-              class="field-input resize-y font-mono text-xs"
-              :placeholder="(field as any).hint ?? 'One item per line'"
-            ></textarea>
-            <button
-              v-else-if="field.type === 'toggle'"
-              type="button"
-              role="switch"
-              :aria-checked="!!content[field.key]"
-              @click="content[field.key] = !content[field.key]"
-              :class="[
-                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200',
-                content[field.key] ? 'bg-[var(--accent-deep)]' : 'bg-[var(--border)]',
-              ]"
-            >
-              <span
-                :class="[
-                  'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200',
-                  content[field.key] ? 'translate-x-5' : 'translate-x-0',
-                ]"
-              />
-            </button>
-            <input
-              v-else
-              v-model="content[field.key]"
-              :type="field.type"
-              class="field-input"
-            />
-          </div>
-        </template>
-      </div>
+      </template>
     </div>
   </div>
 </template>

@@ -86,7 +86,7 @@ const navLinks: [string, string][] = Array.isArray(headerCms.navLinks) && header
     </section>
 
     <!-- About -->
-    {about.enabled !== false && <section id="about" class="crm-frame py-20 md:py-24">
+    <section id="about" class="crm-frame py-20 md:py-24">
       <div class="grid gap-10 xl:grid-cols-[480px_minmax(0,1fr)] xl:items-center">
         <div class="overflow-hidden">
           <img src={about.image} alt={about.title} class="h-full w-full object-cover" />
@@ -114,7 +114,7 @@ const navLinks: [string, string][] = Array.isArray(headerCms.navLinks) && header
           )}
         </div>
       </div>
-    </section>}
+    </section>
 
     <!-- Featured listings -->
     {featured.length > 0 && (
@@ -173,7 +173,7 @@ const navLinks: [string, string][] = Array.isArray(headerCms.navLinks) && header
     )}
 
     <!-- Stats -->
-    {stats.enabled !== false && stats.items?.length > 0 && (
+    {stats.items?.length > 0 && (
       <section class="bg-[var(--ink)] text-[var(--page)]">
         <div class="crm-frame grid gap-10 py-16 md:grid-cols-2 xl:grid-cols-4">
           {stats.items.map(([value, label]: [string, string]) => (
@@ -187,7 +187,7 @@ const navLinks: [string, string][] = Array.isArray(headerCms.navLinks) && header
     )}
 
     <!-- CTA -->
-    {cta.enabled !== false && cta.title && (
+    {cta.title && (
       <section class="crm-frame py-20 text-center md:py-24">
         <div class="mx-auto max-w-3xl space-y-6">
           <h2 class="font-display text-4xl leading-tight md:text-[3.25rem]">{cta.title}</h2>
