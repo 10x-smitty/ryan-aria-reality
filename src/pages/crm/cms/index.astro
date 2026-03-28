@@ -5,6 +5,8 @@ import TestimonialEditor from '../../../components/cms/TestimonialEditor.vue';
 import FeaturedListingPicker from '../../../components/cms/FeaturedListingPicker.vue';
 import { getAllSiteContent, getAllTestimonials, getFeaturedListings } from '../../../services/site-content';
 import { getAllProperties } from '../../../services/properties';
+import { AGENCY_DISCLOSURE_SHORT } from '../../../lib/utils/illinois-compliance';
+import type { FooterContent } from '../../../types/cms';
 
 const [content, allTestimonials, featuredRows, allProperties] = await Promise.all([
   getAllSiteContent(),
@@ -34,7 +36,16 @@ const hero = { showSearch: true, ...(content.hero ?? {}) };
 const about = content.about ?? {};
 const stats = content.stats ?? { items: [] };
 const cta = content.cta ?? {};
-const footer = content.footer ?? {};
+const footerRaw = (content.footer ?? {}) as Partial<FooterContent>;
+const footer: Partial<FooterContent> = {
+  description: '',
+  phone: '',
+  email: '',
+  address: '',
+  ...footerRaw,
+  licenseLine:
+    footerRaw.licenseLine === undefined ? AGENCY_DISCLOSURE_SHORT : (footerRaw.licenseLine ?? ''),
+};
 const header = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria Properties', navLinks: [] };
 ---
 
@@ -56,7 +67,10 @@ const header = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria P
       initialContent={{
         logoUrl: header.logoUrl ?? '',
         brandText: header.brandText ?? 'Ryan Aria Properties',
-        navLinksRaw: (header.navLinks ?? []).map(([l, h]: [string, string]) => `${l} | ${h}`).join('\n'),
+        navLinksRaw: (header.navLinks ?? []).map((item: any) => {
+          const [l, h] = Array.isArray(item) ? item : [item.label ?? '', item.href ?? ''];
+          return `${l} | ${h}`;
+        }).join('\n'),
       }}
       fields={[
         { key: 'logoUrl', label: 'Logo image URL (leave blank to show brand text)', type: 'url', hint: 'Paste a URL to your logo image (PNG, SVG)' },
@@ -102,7 +116,10 @@ const header = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria P
       client:load
       slug="stats"
       title="Stats Bar"
-      initialContent={{ itemsRaw: (stats.items ?? []).map(([v, l]: [string, string]) => `${v} | ${l}`).join('\n') }}
+      initialContent={{ itemsRaw: (stats.items ?? []).map((item: any) => {
+        const [v, l] = Array.isArray(item) ? item : [item.value ?? '', item.label ?? ''];
+        return `${v} | ${l}`;
+      }).join('\n') }}
       fields={[
         { key: 'itemsRaw', label: 'Stats (format: value | label, one per line)', type: 'list', hint: '2,400+ | Properties Sold' },
       ]}
@@ -134,6 +151,12 @@ const header = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria P
         { key: 'phone', label: 'Phone', type: 'text' },
         { key: 'email', label: 'Email', type: 'text' },
         { key: 'address', label: 'Address / service area', type: 'text' },
+        {
+          key: 'licenseLine',
+          label: 'Managing broker license line (footer compliance)',
+          type: 'text',
+          hint: 'Shown next to Equal Housing (e.g. firm name · IL Managing Broker Lic. number). Leave blank on the public site to use the default from code.',
+        },
       ]}
     />
 

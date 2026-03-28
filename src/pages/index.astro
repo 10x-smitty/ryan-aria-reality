@@ -16,10 +16,21 @@ const [content, testimonials, featured] = await Promise.all([
 
 const hero   = { showSearch: true, ...(content.hero   ?? { title: 'Find Your Dream Home', eyebrow: '', subtitle: '', backgroundImage: '', trust: [] }) };
 const about  = content.about  ?? { image: '', label: '', title: 'Ryan Aria', role: '', paragraphs: [], certifications: [] };
-const stats  = content.stats  ?? { items: [] };
+const rawStats  = content.stats  ?? { items: [] };
 const cta    = content.cta    ?? { title: '', subtitle: '', phone: '', email: '', trust: [] };
 const footer = content.footer ?? { description: '', phone: '', email: '', address: '', socials: ['instagram', 'linkedin', 'facebook'], legal: [] };
+const footerLicenseLine =
+  typeof footer.licenseLine === 'string' && footer.licenseLine.trim()
+    ? footer.licenseLine.trim()
+    : AGENCY_DISCLOSURE_SHORT;
 const headerCms = (content as any).header ?? { logoUrl: '', brandText: 'Ryan Aria Properties', navLinks: [] };
+
+// Normalize stats.items — CMS editor saves {value, label} objects; template expects [value, label] tuples
+const stats = {
+  items: (rawStats.items ?? []).map((item: any): [string, string] =>
+    Array.isArray(item) ? item : [item.value ?? '', item.label ?? '']
+  ).filter(([v]: [string, string]) => v),
+};
 
 const defaultNavLinks: [string, string][] = [
   ['Featured', '#featured'],
@@ -27,9 +38,13 @@ const defaultNavLinks: [string, string][] = [
   ['Testimonials', '#testimonials'],
   ['Contact', '#contact'],
 ];
-const navLinks: [string, string][] = Array.isArray(headerCms.navLinks) && headerCms.navLinks.length > 0
+const rawNavLinks = Array.isArray(headerCms.navLinks) && headerCms.navLinks.length > 0
   ? headerCms.navLinks
   : defaultNavLinks;
+// Normalize navLinks — may be [label, href] tuples or {label, href} objects from CMS
+const navLinks: [string, string][] = rawNavLinks.map((item: any): [string, string] =>
+  Array.isArray(item) ? item : [item.label ?? '', item.href ?? '']
+);
 ---
 
 <BaseLayout title="Ryan Aria Properties — Chicagoland Luxury Real Estate">
@@ -264,7 +279,7 @@ const navLinks: [string, string][] = Array.isArray(headerCms.navLinks) && header
         <EqualHousingLogo size={28} class="mt-0.5 shrink-0 opacity-50" />
         <div class="space-y-1">
           <p>Equal Housing Opportunity</p>
-          <p class="opacity-70">{AGENCY_DISCLOSURE_SHORT}</p>
+          <p class="opacity-70">{footerLicenseLine}</p>
         </div>
       </div>
 

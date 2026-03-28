@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 
 type Field =
-  | { key: string; label: string; type: 'text' | 'textarea' | 'url' }
+  | { key: string; label: string; type: 'text' | 'textarea' | 'url'; hint?: string }
   | { key: string; label: string; type: 'list'; hint?: string }
   | { key: string; label: string; type: 'toggle'; hint?: string };
 
@@ -77,6 +77,12 @@ async function save() {
             rows="4"
             class="field-input resize-y"
           ></textarea>
+          <p
+            v-if="field.type === 'textarea' && field.hint"
+            class="mt-1 text-xs leading-snug text-[var(--muted)]"
+          >
+            {{ field.hint }}
+          </p>
           <textarea
             v-else-if="field.type === 'list'"
             :value="listStr(field.key)"
@@ -109,6 +115,12 @@ async function save() {
             :type="field.type"
             class="field-input"
           />
+          <p
+            v-if="(field.type === 'text' || field.type === 'url') && field.hint"
+            class="mt-1 text-xs leading-snug text-[var(--muted)]"
+          >
+            {{ field.hint }}
+          </p>
         </div>
       </template>
     </div>

@@ -65,6 +65,8 @@
 }
 
 .surface-card {
+  margin-top: 20px;
+  margin-bottom: 20px;
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow-soft);

@@ -38,6 +38,8 @@ export interface FooterContent {
   address: string;
   socials: string[];
   legal: string[];
+  /** IDFPR managing broker line under Equal Housing (e.g. "Name · IL Managing Broker Lic. …"). Empty uses built-in default. */
+  licenseLine?: string;
 }
 
 export interface HeaderContent {

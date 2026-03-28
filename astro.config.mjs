@@ -9,5 +9,8 @@ export default defineConfig({
   integrations: [vue()],
   vite: {
     plugins: [tailwindcss()],
+    ssr: {
+      external: ['@neondatabase/serverless', 'drizzle-orm'],
+    },
   },
 });

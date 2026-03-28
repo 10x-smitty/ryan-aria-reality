@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm';
 import { db } from './client.ts';
 import { users, properties, contacts, deals, siteContent, testimonials, featuredListings, customerFavorites, transactionTimeline, messages } from './schema.ts';
 import { hashPassword } from '../auth/password.ts';
+import { AGENCY_DISCLOSURE_SHORT } from '../utils/illinois-compliance.ts';
 
 // ── Admin user ────────────────────────────────────────────────────────────────
 
@@ -240,6 +241,7 @@ if (contentCount.length === 0) {
         address: 'Serving Will, Cook, DuPage & Kankakee Counties, IL',
         socials: ['instagram', 'linkedin', 'facebook'],
         legal: ['Privacy Policy', 'Terms of Service', 'Fair Housing'],
+        licenseLine: AGENCY_DISCLOSURE_SHORT,
       },
     },
   ];
